@@ -1,0 +1,16 @@
+.git
+.github
+.venv
+.env*
+!.env.example
+.kamal
+**/node_modules
+**/dist
+staticfiles
+media
+assets/css/tailwind.css
+.django_tailwind_cli
+**/__pycache__
+.pytest_cache
+.ruff_cache
+openapi.json

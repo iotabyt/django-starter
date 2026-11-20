@@ -1,0 +1,107 @@
+# Kamal 2: https://kamal-deploy.org/docs/configuration/overview/
+# The server is prepared by iotabyt-infra: a `deploy` user in the docker group, reachable
+# over Tailscale, with only 80/443 open publicly. Run Kamal from a machine on the tailnet.
+service: {{ project_slug }}
+image: {{ github_owner }}/{{ project_slug }}
+
+servers:
+  web:
+    hosts:
+      - {{ server_host }}
+  worker:
+    hosts:
+      - {{ server_host }}
+    cmd: python manage.py procrastinate worker
+
+proxy:
+  ssl: true
+  host: {{ domain }}
+  app_port: 8000
+  healthcheck:
+    path: /up
+    interval: 3
+    timeout: 5
+
+# Migrations run in the entrypoint before gunicorn starts, so allow time for them.
+deploy_timeout: 60
+
+registry:
+  server: ghcr.io
+  # A GitHub user with a classic token (write:packages). For an org owner, use your username.
+  username: {{ github_owner }}
+  password:
+    - KAMAL_REGISTRY_PASSWORD
+
+builder:
+  arch: amd64
+
+ssh:
+  user: deploy
+
+env:
+  clear:
+    DJANGO_SETTINGS_MODULE: config.settings.prod
+    ALLOWED_HOSTS: {{ domain }}
+    CSRF_TRUSTED_ORIGINS: https://{{ domain }}
+    SITE_URL: https://{{ domain }}
+    WEB_CONCURRENCY: 3
+  secret:
+    - SECRET_KEY
+    - DATABASE_URL
+    - ADMIN_URL
+    - RESEND_API_KEY
+    - DEFAULT_FROM_EMAIL
+    - GOOGLE_CLIENT_ID
+    - GOOGLE_CLIENT_SECRET
+    - R2_BUCKET
+    - R2_ENDPOINT_URL
+    - R2_ACCESS_KEY_ID
+    - R2_SECRET_ACCESS_KEY
+    - SENTRY_DSN
+{% if database == "accessory" %}
+
+accessories:
+  db:
+    image: postgres:18
+    host: {{ server_host }}
+    # No `port:` on purpose. A published port is opened by Docker's own iptables rules,
+    # which bypass UFW, so Postgres would be reachable from the internet. The app reaches
+    # it as {{ project_slug }}-db:5432 on Kamal's private Docker network.
+    env:
+      clear:
+        POSTGRES_USER: {{ db_name }}
+        POSTGRES_DB: {{ db_name }}_production
+      secret:
+        - POSTGRES_PASSWORD
+    directories:
+      # The PG18 image keeps its data under /var/lib/postgresql/<major>/.
+      - data:/var/lib/postgresql
+
+  # Nightly encrypted backups to R2 with pgbackup-r2 (https://pgbackup-r2.iotabyt.com).
+  # Uncomment, fill in the clear values, add the secrets to .kamal/secrets and
+  # .env.production, then: kamal accessory boot backup
+  # backup:
+  #   image: ghcr.io/iotabyt/pgbackup-r2:pg18   # match the Postgres major version
+  #   host: {{ server_host }}
+  #   env:
+  #     clear:
+  #       S3_ENDPOINT: https://<account-id>.r2.cloudflarestorage.com
+  #       S3_BUCKET: <backups-bucket>
+  #       S3_PREFIX: {{ project_slug }}
+  #       AGE_RECIPIENTS: age1...            # the PUBLIC key only
+  #       BACKUP_AT: "02:00"                 # UTC
+  #     secret:
+  #       - DATABASE_URL                     # same URL as the app: {{ project_slug }}-db host
+  #       - AWS_ACCESS_KEY_ID                # an R2 token for the backups bucket
+  #       - AWS_SECRET_ACCESS_KEY
+  #       - HEARTBEAT_URL
+  #       - HEARTBEAT_FAIL_URL
+{% endif %}
+
+aliases:
+  console: app exec --interactive --reuse "python manage.py shell"
+  shell: app exec --interactive --reuse "bash"
+  dbshell: app exec --interactive --reuse "python manage.py dbshell"
+  createsuperuser: app exec --interactive --reuse "python manage.py createsuperuser"
+  logs: app logs --follow --roles=web
+  worker-logs: app logs --follow --roles=worker

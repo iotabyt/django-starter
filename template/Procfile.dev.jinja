@@ -1,0 +1,6 @@
+web: python manage.py runserver 127.0.0.1:8000
+css: python manage.py tailwind watch
+worker: python manage.py procrastinate worker
+{% if use_spa %}
+vite: npm --prefix frontend run dev
+{% endif %}
