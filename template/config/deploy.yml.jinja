@@ -27,8 +27,7 @@ deploy_timeout: 60
 
 registry:
   server: ghcr.io
-  # A GitHub user with a classic token (write:packages). For an org owner, use your username.
-  username: {{ github_owner }}
+  username: {{ registry_username }}
   password:
     - KAMAL_REGISTRY_PASSWORD
 

@@ -62,6 +62,11 @@ github_owner:
   help: GitHub owner; images are pushed to ghcr.io/<owner>/<slug>
   default: iotabyt
 
+registry_username:
+  type: str
+  help: GitHub user that owns the GHCR token, not the org
+  default: oboynitro
+
 server_host:
   type: str
   help: Server to deploy to (Tailscale machine name)

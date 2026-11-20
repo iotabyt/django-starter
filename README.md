@@ -29,6 +29,7 @@ Node 22 for the SPA). The generated project's README covers development and depl
 | `author_email` | `hello@iotabyt.com` | |
 | `domain` | `<slug>.iotabyt.com` | Public hostname served by kamal-proxy |
 | `github_owner` | `iotabyt` | Images go to `ghcr.io/<owner>/<slug>` |
+| `registry_username` | `oboynitro` | GitHub user that owns the GHCR token (not the org); `registry.username` in `deploy.yml` |
 | `server_host` | `vps-01` | Tailscale name of the server |
 | `database` | `accessory` | `accessory`: Postgres 18 on the server as a Kamal accessory. `external`: bring your own `DATABASE_URL` (Neon etc.) |
 | `use_orgs` | `true` | `apps/orgs`: organizations, memberships with roles, email invites |
