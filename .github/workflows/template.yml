@@ -1,3 +1,5 @@
+# Tests the template itself: generate every use_spa × use_orgs combination and run the
+# generated project's checks. (Generated projects get their own CI from template/.)
 name: Template
 
 on:
@@ -6,54 +8,91 @@ on:
   pull_request:
 
 jobs:
-  generate:
+  generate-and-check:
+    name: spa=${{ matrix.use_spa }} orgs=${{ matrix.use_orgs }} db=${{ matrix.database }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        spa: [true, false]
-        orgs: [true, false]
+        include:
+          - { use_spa: true, use_orgs: true, database: accessory }
+          - { use_spa: true, use_orgs: false, database: external }
+          - { use_spa: false, use_orgs: true, database: external }
+          - { use_spa: false, use_orgs: false, database: accessory }
     services:
       postgres:
         image: postgres:18
         env:
+          POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-        ports: ["5432:5432"]
+          POSTGRES_DB: my_project
+        ports:
+          - 5432:5432
         options: >-
           --health-cmd "pg_isready -U postgres"
-          --health-interval 5s --health-timeout 5s --health-retries 10
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     env:
-      DATABASE_URL: postgres://postgres:postgres@localhost:5432/ci_test
+      # Matches the default project_name ("My Project" -> slug my-project -> my_project).
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/my_project
+      PROJECT_DIR: ${{ github.workspace }}/../generated
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
+          # Copier renders from git (--vcs-ref HEAD), so give it full history.
           fetch-depth: 0
-      - uses: astral-sh/setup-uv@v6
-      - uses: actions/setup-node@v5
+
+      - uses: astral-sh/setup-uv@v10
+
+      - uses: actions/setup-node@v7
+        if: matrix.use_spa
         with:
           node-version: 22
 
       - name: Generate project
-        run: |
-          uvx copier copy --defaults --vcs-ref HEAD \
-            -d project_name="CI Test" \
-            -d use_spa=${{ matrix.spa }} -d use_orgs=${{ matrix.orgs }} \
-            . /tmp/proj
+        run: >-
+          uvx copier copy --defaults --vcs-ref HEAD
+          -d use_spa=${{ matrix.use_spa }}
+          -d use_orgs=${{ matrix.use_orgs }}
+          -d database=${{ matrix.database }}
+          . "$PROJECT_DIR"
 
-      - name: Backend checks
-        working-directory: /tmp/proj
-        run: |
-          uv sync
-          uv run ruff check .
-          uv run ruff format --check .
-          uv run basedpyright
-          uv run python manage.py makemigrations --check --dry-run
-          uv run pytest
+      - name: uv sync
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: uv sync
 
-      - name: Frontend checks
-        if: matrix.spa
-        working-directory: /tmp/proj/frontend
-        run: |
-          npm ci
-          npm run build
-          npm run typecheck
+      - name: ruff check
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: uv run ruff check .
+
+      - name: ruff format --check
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: uv run ruff format --check .
+
+      - name: basedpyright
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: uv run basedpyright
+
+      - name: makemigrations --check
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: uv run python manage.py makemigrations --check --dry-run
+
+      - name: pytest
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: uv run pytest
+
+      - name: npm ci
+        if: matrix.use_spa
+        working-directory: ${{ env.PROJECT_DIR }}/frontend
+        run: npm ci
+
+      - name: npm run build
+        if: matrix.use_spa
+        working-directory: ${{ env.PROJECT_DIR }}/frontend
+        run: npm run build
+
+      - name: npm run typecheck
+        if: matrix.use_spa
+        working-directory: ${{ env.PROJECT_DIR }}/frontend
+        run: npm run typecheck
