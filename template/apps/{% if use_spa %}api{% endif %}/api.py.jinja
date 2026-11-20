@@ -1,0 +1,28 @@
+from django.conf import settings
+from django.http import HttpRequest
+from ninja import NinjaAPI
+from ninja.security import django_auth
+
+{% if use_orgs %}
+from .orgs import router as orgs_router
+{% endif %}
+from .schemas import MeOut
+
+# Session-cookie auth: the SPA is served by Django after an allauth login, so there's no
+# JWT and no CORS. Ninja enforces CSRF on unsafe methods for cookie auth.
+api = NinjaAPI(
+    title=f"{settings.PROJECT_NAME} API",
+    auth=django_auth,
+    urls_namespace="api",
+    docs_url="/docs" if settings.DEBUG else None,
+)
+
+
+@api.get("/me", response=MeOut)
+def me(request: HttpRequest):
+    return request.auth
+{% if use_orgs %}
+
+
+api.add_router("/orgs", orgs_router)
+{% endif %}

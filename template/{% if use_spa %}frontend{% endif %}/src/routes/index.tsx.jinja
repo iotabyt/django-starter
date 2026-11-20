@@ -1,0 +1,98 @@
+{% if use_orgs %}
+import { queryOptions, useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { createFileRoute } from "@tanstack/react-router";
+import { type FormEvent, useState } from "react";
+import { ApiError, get, post } from "../lib/api";
+import type { Org } from "../lib/types";
+
+const orgsQuery = queryOptions({
+  queryKey: ["orgs"],
+  queryFn: () => get<Org[]>("/orgs/"),
+});
+
+export const Route = createFileRoute("/")({
+  loader: ({ context }) => context.queryClient.ensureQueryData(orgsQuery),
+  component: Dashboard,
+});
+
+function Dashboard() {
+  const { data: orgs } = useSuspenseQuery(orgsQuery);
+  const queryClient = useQueryClient();
+  const [name, setName] = useState("");
+
+  const createOrg = useMutation({
+    mutationFn: (orgName: string) => post<Org>("/orgs/", { name: orgName }),
+    onSuccess: () => {
+      setName("");
+      return queryClient.invalidateQueries({ queryKey: orgsQuery.queryKey });
+    },
+  });
+
+  function onSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (name.trim()) createOrg.mutate(name.trim());
+  }
+
+  return (
+    <div className="space-y-8">
+      <h1 className="text-2xl font-bold tracking-tight">Your organizations</h1>
+
+      {orgs.length === 0 ? (
+        <p className="text-sm text-gray-600">You're not in any organizations yet.</p>
+      ) : (
+        <ul className="divide-y divide-gray-200 rounded-lg border border-gray-200 bg-white">
+          {orgs.map((org) => (
+            <li key={org.id} className="flex items-center justify-between px-4 py-3">
+              <span className="font-medium">{org.name}</span>
+              <span className="text-xs tracking-wide text-gray-500 uppercase">{org.role}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <form onSubmit={onSubmit} className="flex max-w-md gap-2">
+        <input
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          placeholder="New organization name"
+          aria-label="Organization name"
+          className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+        />
+        <button
+          type="submit"
+          disabled={createOrg.isPending}
+          className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 disabled:opacity-50"
+        >
+          Create
+        </button>
+      </form>
+      {createOrg.error && (
+        <p className="text-sm text-red-600">
+          {createOrg.error instanceof ApiError ? createOrg.error.message : "Something went wrong."}
+        </p>
+      )}
+    </div>
+  );
+}
+{% else %}
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { createFileRoute } from "@tanstack/react-router";
+import { meQuery } from "./__root";
+
+export const Route = createFileRoute("/")({
+  component: Home,
+});
+
+function Home() {
+  const { data: me } = useSuspenseQuery(meQuery);
+
+  return (
+    <div className="space-y-2">
+      <h1 className="text-2xl font-bold tracking-tight">Hello, {me.name || me.email}</h1>
+      <p className="text-sm text-gray-600">
+        This is the React app. Edit <code>frontend/src/routes/index.tsx</code> to get started.
+      </p>
+    </div>
+  );
+}
+{% endif %}

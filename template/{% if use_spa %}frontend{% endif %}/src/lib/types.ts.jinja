@@ -1,0 +1,18 @@
+// Hand-written API types. For generated ones, run `just api-types` (src/lib/api-schema.ts).
+
+export type Me = {
+  id: number;
+  email: string;
+  name: string;
+};
+{% if use_orgs %}
+
+export type Role = "owner" | "admin" | "member";
+
+export type Org = {
+  id: number;
+  name: string;
+  slug: string;
+  role: Role;
+};
+{% endif %}

@@ -1,0 +1,77 @@
+from datetime import datetime
+
+from django.http import HttpRequest
+from ninja import Field, Router, Schema, Status
+from ninja.errors import HttpError
+from pydantic import EmailStr
+
+from apps.orgs.models import Membership, Role
+from apps.orgs.services import InviteError, create_organization, invite_member
+
+from .schemas import ErrorOut
+
+router = Router(tags=["orgs"])
+
+
+class OrgOut(Schema):
+    id: int
+    name: str
+    slug: str
+    role: str
+
+
+class OrgIn(Schema):
+    name: str = Field(min_length=1, max_length=200)
+
+
+class InviteIn(Schema):
+    email: EmailStr
+    role: str = Role.MEMBER
+
+
+class InviteOut(Schema):
+    id: int
+    email: str
+    role: str
+    expires_at: datetime
+
+
+@router.get("/", response=list[OrgOut])
+def list_orgs(request: HttpRequest):
+    memberships = (
+        Membership.objects.filter(user=request.auth)
+        .select_related("organization")
+        .order_by("organization__name")
+    )
+    return [
+        OrgOut(
+            id=m.organization.pk, name=m.organization.name, slug=m.organization.slug, role=m.role
+        )
+        for m in memberships
+    ]
+
+
+@router.post("/", response={201: OrgOut})
+def create_org(request: HttpRequest, payload: OrgIn):
+    org = create_organization(payload.name.strip(), request.auth)
+    return Status(201, OrgOut(id=org.pk, name=org.name, slug=org.slug, role=Role.OWNER))
+
+
+@router.post("/{slug}/invites", response={201: InviteOut, 400: ErrorOut, 403: ErrorOut})
+def create_invite(request: HttpRequest, slug: str, payload: InviteIn):
+    membership = (
+        Membership.objects.filter(organization__slug=slug, user=request.auth)
+        .select_related("organization")
+        .first()
+    )
+    if membership is None:
+        raise HttpError(404, "Organization not found.")
+    if not membership.can_manage:
+        return Status(403, ErrorOut(detail="Only owners and admins can invite people."))
+    if payload.role not in (Role.ADMIN, Role.MEMBER):
+        return Status(400, ErrorOut(detail="Role must be admin or member."))
+    try:
+        invite = invite_member(membership.organization, payload.email, request.auth, payload.role)
+    except InviteError as exc:
+        return Status(400, ErrorOut(detail=str(exc)))
+    return Status(201, invite)
