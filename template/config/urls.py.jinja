@@ -1,0 +1,27 @@
+from django.conf import settings
+from django.contrib import admin
+from django.urls import include, path
+
+{% if use_spa %}
+from apps.api.api import api
+
+{% endif %}
+urlpatterns = [
+    path(settings.ADMIN_URL, admin.site.urls),
+    path("accounts/", include("allauth.urls")),
+{% if use_orgs %}
+    path("orgs/", include("apps.orgs.urls")),
+{% endif %}
+{% if use_spa %}
+    path("api/", api.urls),
+{% endif %}
+    path("", include("apps.core.urls")),
+]
+
+if "debug_toolbar" in settings.INSTALLED_APPS:
+    from debug_toolbar.toolbar import debug_toolbar_urls
+
+    urlpatterns += debug_toolbar_urls()
+
+if "django_browser_reload" in settings.INSTALLED_APPS:
+    urlpatterns += [path("__reload__/", include("django_browser_reload.urls"))]

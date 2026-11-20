@@ -1,0 +1,17 @@
+import pytest
+
+pytestmark = pytest.mark.django_db
+
+
+def test_spa_requires_login(client):
+    response = client.get("/app/")
+    assert response.status_code == 302
+    assert response["Location"].startswith("/accounts/login/")
+
+
+def test_spa_serves_the_shell_for_deep_routes(client, user):
+    client.force_login(user)
+    response = client.get("/app/some/deep/route")
+    assert response.status_code == 200
+    assert b'<div id="root">' in response.content
+    assert "csrftoken" in response.cookies

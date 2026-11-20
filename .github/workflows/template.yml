@@ -1,0 +1,59 @@
+name: Template
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        spa: [true, false]
+        orgs: [true, false]
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/ci_test
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Generate project
+        run: |
+          uvx copier copy --defaults --vcs-ref HEAD \
+            -d project_name="CI Test" \
+            -d use_spa=${{ matrix.spa }} -d use_orgs=${{ matrix.orgs }} \
+            . /tmp/proj
+
+      - name: Backend checks
+        working-directory: /tmp/proj
+        run: |
+          uv sync
+          uv run ruff check .
+          uv run ruff format --check .
+          uv run basedpyright
+          uv run python manage.py makemigrations --check --dry-run
+          uv run pytest
+
+      - name: Frontend checks
+        if: matrix.spa
+        working-directory: /tmp/proj/frontend
+        run: |
+          npm ci
+          npm run build
+          npm run typecheck

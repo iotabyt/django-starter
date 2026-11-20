@@ -1,0 +1,50 @@
+{% load static tailwind_cli django_htmx %}<!doctype html>
+<html lang="en-GB" class="h-full">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}{{ PROJECT_NAME }}{% endblock %}</title>
+    {% tailwind_css %}
+    {% htmx_script %}
+    {% block extra_head %}{% endblock %}
+  </head>
+  <body class="flex min-h-full flex-col bg-gray-50 text-gray-900 antialiased" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+    <header class="border-b border-gray-200 bg-white">
+      <nav class="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3">
+        <a href="{% url 'core:home' %}" class="font-semibold tracking-tight">{{ PROJECT_NAME }}</a>
+        <div class="flex items-center gap-4 text-sm">
+          {% if user.is_authenticated %}
+            {# Resolves only when the SPA is installed; `as` makes a missing URL a no-op. #}
+            {% url 'core:spa' path='' as spa_url %}
+            {% if spa_url %}<a href="{{ spa_url }}" class="btn-primary">Open app</a>{% endif %}
+            <span class="hidden text-gray-600 sm:inline">{{ user.email }}</span>
+            <a href="{% url 'mfa_index' %}" class="link">Security</a>
+            <form method="post" action="{% url 'account_logout' %}">
+              {% csrf_token %}
+              <button type="submit" class="link">Sign out</button>
+            </form>
+          {% else %}
+            <a href="{% url 'account_login' %}" class="link">Sign in</a>
+            <a href="{% url 'account_signup' %}" class="btn-primary">Sign up</a>
+          {% endif %}
+        </div>
+      </nav>
+    </header>
+
+    {% if messages %}
+      <ul class="mx-auto mt-4 w-full max-w-5xl space-y-2 px-4">
+        {% for message in messages %}
+          <li class="rounded-md border px-4 py-3 text-sm {% if message.level_tag == 'error' %}border-red-200 bg-red-50 text-red-800{% elif message.level_tag == 'success' %}border-green-200 bg-green-50 text-green-800{% else %}border-gray-200 bg-white text-gray-800{% endif %}">
+            {{ message }}
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    <main class="{% block main_class %}mx-auto w-full max-w-5xl flex-1 px-4 py-10{% endblock %}">
+      {% block content %}{% endblock %}
+    </main>
+
+    {% block extra_body %}{% endblock %}
+  </body>
+</html>

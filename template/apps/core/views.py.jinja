@@ -1,0 +1,29 @@
+{% if use_spa %}
+from django.contrib.auth.decorators import login_required
+{% endif %}
+from django.http import HttpRequest, HttpResponse
+from django.shortcuts import render
+from django.utils import timezone
+{% if use_spa %}
+from django.views.decorators.csrf import ensure_csrf_cookie
+{% endif %}
+from django.views.decorators.http import require_GET
+
+
+def home(request: HttpRequest) -> HttpResponse:
+    return render(request, "core/home.html")
+
+
+@require_GET
+def ping(request: HttpRequest) -> HttpResponse:
+    # Renders only the `pong` partial defined inside core/home.html.
+    return render(request, "core/home.html#pong", {"pong_at": timezone.now()})
+{% if use_spa %}
+
+
+@login_required
+@ensure_csrf_cookie
+def spa(request: HttpRequest, path: str = "") -> HttpResponse:
+    # One shell for every /app/... URL; TanStack Router takes it from there.
+    return render(request, "spa.html")
+{% endif %}

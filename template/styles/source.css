@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+@source "../templates";
+@source "../apps";
+
+/* Utilities (not components) so they can be used with @apply, e.g. `@apply btn-primary`. */
+@utility btn-primary {
+  @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+@utility btn-secondary {
+  @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-md bg-white px-4 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-gray-300 ring-inset hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+@utility link {
+  @apply cursor-pointer font-medium text-indigo-600 hover:text-indigo-500 hover:underline;
+}
+
+/* allauth renders plain elements; style them inside the .allauth wrapper (see
+   templates/allauth/layouts/base.html). */
+@layer components {
+  .allauth h1 {
+    @apply mb-6 text-2xl font-bold tracking-tight;
+  }
+  .allauth h2 {
+    @apply mt-8 mb-3 text-lg font-semibold;
+  }
+  .allauth p {
+    @apply mb-4 text-sm text-gray-600;
+  }
+  .allauth form {
+    @apply space-y-4;
+  }
+  .allauth label {
+    @apply block text-sm font-medium text-gray-700;
+  }
+  .allauth input:not([type="checkbox"], [type="radio"], [type="hidden"], [type="submit"]),
+  .allauth select,
+  .allauth textarea {
+    @apply mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none;
+  }
+  .allauth button,
+  .allauth input[type="submit"] {
+    @apply btn-primary;
+  }
+  .allauth form button[type="submit"] {
+    @apply w-full;
+  }
+  .allauth .errorlist {
+    @apply mt-1 space-y-1 text-sm text-red-600;
+  }
+  .allauth .helptext {
+    @apply mt-1 block text-xs text-gray-500;
+  }
+  .allauth a {
+    @apply link;
+  }
+  .allauth hr {
+    @apply my-6 border-gray-200;
+  }
+}

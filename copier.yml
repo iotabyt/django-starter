@@ -1,0 +1,92 @@
+_min_copier_version: "9.4"
+_subdirectory: template
+_templates_suffix: .jinja
+_answers_file: .copier-answers.yml
+
+# trim_blocks drops the newline after a block tag and lstrip_blocks drops the
+# indentation before one, so `{% if %}` / `{% endif %}` can sit on their own
+# lines (indented or not) without leaving blank lines behind.
+_envops:
+  trim_blocks: true
+  lstrip_blocks: true
+  keep_trailing_newline: true
+
+_message_after_copy: |
+  {{ project_name }} is ready in {{ _copier_conf.dst_path }}.
+
+  Next steps:
+
+    cd {{ _copier_conf.dst_path }}
+    git init
+    just setup        # uv sync, .env, Postgres, migrations, Tailwind{{ ', npm install' if use_spa else '' }}
+    just superuser
+    just dev          # http://localhost:8000
+
+  Commit uv.lock{{ ' and frontend/package-lock.json' if use_spa else '' }} with your first commit.
+  Pull later template changes with: copier update
+
+project_name:
+  type: str
+  help: Project name (human readable)
+  default: My Project
+
+project_slug:
+  type: str
+  help: Project slug (used for the service, image and database names)
+  default: "{{ project_name | lower | regex_replace('[^a-z0-9]+', '-') | regex_replace('^-+|-+$', '') }}"
+  validator: >-
+    {% if not (project_slug | regex_search('^[a-z][a-z0-9-]*$')) %}
+    Use lowercase letters, digits and dashes, starting with a letter.
+    {% endif %}
+
+description:
+  type: str
+  help: One-line description
+  default: ""
+
+author_name:
+  type: str
+  default: Frank Owusu Boakye
+
+author_email:
+  type: str
+  default: hello@iotabyt.com
+
+domain:
+  type: str
+  help: Public domain the app is served on
+  default: "{{ project_slug }}.iotabyt.com"
+
+github_owner:
+  type: str
+  help: GitHub owner; images are pushed to ghcr.io/<owner>/<slug>
+  default: iotabyt
+
+server_host:
+  type: str
+  help: Server to deploy to (Tailscale machine name)
+  default: vps-01
+
+database:
+  type: str
+  help: Where production Postgres runs
+  default: accessory
+  choices:
+    "Postgres on the VPS as a Kamal accessory": accessory
+    "External (Neon, RDS, ...)": external
+
+use_orgs:
+  type: bool
+  help: Include organizations, memberships and invites?
+  default: true
+
+use_spa:
+  type: bool
+  help: Include the Django Ninja API and the React SPA under /app/?
+  default: true
+
+# Computed, not asked and not stored in the answers file.
+db_name:
+  type: str
+  default: "{{ project_slug | replace('-', '_') }}"
+  when: false

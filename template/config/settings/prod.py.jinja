@@ -1,0 +1,85 @@
+from django.core.exceptions import ImproperlyConfigured
+from django.utils.csp import CSP  # pyright: ignore[reportMissingImports]
+
+from .base import *
+
+DEBUG = False
+
+SECRET_KEY = str(config("SECRET_KEY"))
+if SECRET_KEY.startswith("insecure"):
+    raise ImproperlyConfigured("Set a real SECRET_KEY in production.")
+
+# kamal-proxy terminates TLS and forwards plain HTTP with X-Forwarded-Proto.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+SECURE_SSL_REDIRECT = config("SECURE_SSL_REDIRECT", default=True, cast=bool)
+SESSION_COOKIE_SECURE = True
+SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_SECURE = True
+{% if use_spa %}
+# The CSRF cookie stays readable by JavaScript: the SPA sends it back as X-CSRFToken.
+CSRF_COOKIE_HTTPONLY = False
+{% else %}
+CSRF_COOKIE_HTTPONLY = True
+{% endif %}
+
+# Start low; raise to a year (31536000) once HTTPS is known to work everywhere.
+SECURE_HSTS_SECONDS = config("SECURE_HSTS_SECONDS", default=86400, cast=int)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = config("SECURE_HSTS_INCLUDE_SUBDOMAINS", default=False, cast=bool)
+SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin"
+
+SECURE_CSP = {
+    "default-src": [CSP.SELF],
+    # unsafe-inline and unsafe-eval: the Unfold admin is built on Alpine.js (which evaluates
+    # expressions), and htmx `hx-on` attributes need eval. See the README for tightening this.
+    "script-src": [CSP.SELF, CSP.UNSAFE_INLINE, CSP.UNSAFE_EVAL],
+    # Alpine/Unfold set inline styles, and htmx injects its indicator styles.
+    "style-src": [CSP.SELF, CSP.UNSAFE_INLINE],
+    "img-src": [CSP.SELF, "data:", "https:"],
+    "font-src": [CSP.SELF, "data:"],
+    "connect-src": [CSP.SELF],
+    "frame-ancestors": [CSP.NONE],
+    "object-src": [CSP.NONE],
+    "base-uri": [CSP.SELF],
+    # Chrome checks form-action on redirects too: the Google login form posts here and is
+    # then redirected to accounts.google.com.
+    "form-action": [CSP.SELF, "https://accounts.google.com"],
+}
+
+EMAIL_BACKEND = "anymail.backends.resend.EmailBackend"
+ANYMAIL = {"RESEND_API_KEY": str(config("RESEND_API_KEY", default=""))}
+
+# User uploads go to Cloudflare R2 when a bucket is configured.
+R2_BUCKET = str(config("R2_BUCKET", default=""))
+if R2_BUCKET:
+    STORAGES["default"] = {
+        "BACKEND": "storages.backends.s3.S3Storage",
+        "OPTIONS": {
+            "bucket_name": R2_BUCKET,
+            "endpoint_url": str(config("R2_ENDPOINT_URL")),
+            "access_key": str(config("R2_ACCESS_KEY_ID")),
+            "secret_key": str(config("R2_SECRET_ACCESS_KEY")),
+            "region_name": "auto",
+            "signature_version": "s3v4",
+            # Private bucket: R2 has no object ACLs, so send none and serve signed URLs.
+            "default_acl": None,
+            "querystring_auth": True,
+            "file_overwrite": False,
+        },
+    }
+
+SENTRY_DSN = str(config("SENTRY_DSN", default=""))
+if SENTRY_DSN:
+    import sentry_sdk
+
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        environment=str(config("SENTRY_ENVIRONMENT", default="production")),
+        traces_sample_rate=config("SENTRY_TRACES_SAMPLE_RATE", default=0.0, cast=float),
+        send_default_pii=False,
+    )
+{% if use_spa %}
+
+# Never render Vite dev-server tags in production, even if DEBUG=True leaked into the
+# environment before this file was loaded (base.py defaults dev_mode to DEBUG).
+DJANGO_VITE["default"]["dev_mode"] = False
+{% endif %}

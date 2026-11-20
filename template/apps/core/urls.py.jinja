@@ -1,0 +1,17 @@
+{% if use_spa %}
+from django.urls import path, re_path
+{% else %}
+from django.urls import path
+{% endif %}
+
+from . import views
+
+app_name = "core"
+
+urlpatterns = [
+    path("", views.home, name="home"),
+    path("ping/", views.ping, name="ping"),
+{% if use_spa %}
+    re_path(r"^app/(?P<path>.*)$", views.spa, name="spa"),
+{% endif %}
+]

@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <section class="space-y-4">
+    <h1 class="text-3xl font-bold tracking-tight">{{ PROJECT_NAME }}</h1>
+    <p class="text-gray-600">Server-rendered Django with htmx. Edit <code>templates/core/home.html</code> to get started.</p>
+  </section>
+
+  <section class="mt-10 rounded-lg border border-gray-200 bg-white p-6">
+    <h2 class="font-semibold">htmx + template partials</h2>
+    <p class="mt-1 text-sm text-gray-600">
+      The button fetches <code>/ping/</code>, which renders only the <code>pong</code> partial
+      defined below with <code>{% templatetag openblock %} partialdef pong inline {% templatetag closeblock %}</code>.
+    </p>
+    <div class="mt-4 flex items-center gap-4">
+      <button class="btn-secondary" hx-get="{% url 'core:ping' %}" hx-target="#pong" hx-swap="outerHTML">Ping</button>
+      {% partialdef pong inline %}
+        <span id="pong" class="text-sm text-gray-700">
+          {% if pong_at %}Pong at {{ pong_at|time:"H:i:s" }}{% else %}No ping yet.{% endif %}
+        </span>
+      {% endpartialdef %}
+    </div>
+  </section>
+{% endblock %}

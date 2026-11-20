@@ -1,0 +1,221 @@
+"""Settings shared by every environment. Everything environment-specific comes from env vars."""
+
+from pathlib import Path
+from typing import Any
+
+import dj_database_url
+from decouple import Csv, config
+
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
+PROJECT_NAME = {{ project_name | tojson }}
+
+# Dev fallbacks only: prod.py re-reads SECRET_KEY with no default.
+SECRET_KEY = str(config("SECRET_KEY", default="insecure-dev-key-change-me"))
+DEBUG = config("DEBUG", default=False, cast=bool)
+
+ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="localhost,127.0.0.1", cast=Csv())
+CSRF_TRUSTED_ORIGINS = config("CSRF_TRUSTED_ORIGINS", default="", cast=Csv())
+
+# Used to build absolute links (e.g. in emails sent from background jobs).
+SITE_URL = str(config("SITE_URL", default="http://localhost:8000")).rstrip("/")
+# Move the admin somewhere unguessable in production.
+ADMIN_URL = str(config("ADMIN_URL", default="admin/")).strip("/") + "/"
+
+INSTALLED_APPS = [
+    "unfold",
+    "unfold.contrib.filters",
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+    "allauth",
+    "allauth.account",
+    "allauth.socialaccount",
+    "allauth.socialaccount.providers.google",
+    "allauth.mfa",
+    "django_htmx",
+    "django_tailwind_cli",
+    "procrastinate.contrib.django",
+{% if use_spa %}
+    "ninja",
+    "django_vite",
+{% endif %}
+    "apps.core",
+    "apps.users",
+{% if use_orgs %}
+    "apps.orgs",
+{% endif %}
+{% if use_spa %}
+    "apps.api",
+{% endif %}
+]
+
+MIDDLEWARE = [
+    # First: answers /up before ALLOWED_HOSTS validation and the HTTPS redirect.
+    "apps.core.middleware.HealthCheckMiddleware",
+    "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "django.middleware.csp.ContentSecurityPolicyMiddleware",
+    "django_htmx.middleware.HtmxMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
+]
+
+ROOT_URLCONF = "config.urls"
+WSGI_APPLICATION = "config.wsgi.application"
+
+TEMPLATES = [
+    {
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [BASE_DIR / "templates"],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
+                "django.template.context_processors.csp",
+                "apps.core.context_processors.project",
+            ],
+        },
+    },
+]
+
+DATABASES = {
+    "default": dj_database_url.parse(
+        str(
+            config(
+                "DATABASE_URL",
+                default="postgres://postgres:postgres@localhost:5432/{{ db_name }}",
+            )
+        ),
+        conn_max_age=60,
+        conn_health_checks=True,
+    )
+}
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+AUTH_USER_MODEL = "users.User"
+AUTHENTICATION_BACKENDS = [
+    "django.contrib.auth.backends.ModelBackend",
+    "allauth.account.auth_backends.AuthenticationBackend",
+]
+AUTH_PASSWORD_VALIDATORS = [
+    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
+]
+
+# allauth: email-only accounts, verified before first login.
+ACCOUNT_LOGIN_METHODS = {"email"}
+ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None
+ACCOUNT_EMAIL_VERIFICATION = "mandatory"
+ACCOUNT_UNIQUE_EMAIL = True
+ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
+ACCOUNT_DEFAULT_HTTP_PROTOCOL = "https"
+ACCOUNT_EMAIL_SUBJECT_PREFIX = f"[{PROJECT_NAME}] "
+
+GOOGLE_CLIENT_ID = str(config("GOOGLE_CLIENT_ID", default=""))
+GOOGLE_CLIENT_SECRET = str(config("GOOGLE_CLIENT_SECRET", default=""))
+SOCIALACCOUNT_PROVIDERS = {
+    "google": {
+        "APPS": (
+            [{"client_id": GOOGLE_CLIENT_ID, "secret": GOOGLE_CLIENT_SECRET, "key": ""}]
+            if GOOGLE_CLIENT_ID
+            else []
+        ),
+        "SCOPE": ["profile", "email"],
+        "AUTH_PARAMS": {"access_type": "online"},
+    }
+}
+# Google verifies emails, so let a Google login sign in to (and connect) an existing account.
+SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
+SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
+
+MFA_SUPPORTED_TYPES = ["totp", "recovery_codes"]
+MFA_TOTP_ISSUER = PROJECT_NAME
+
+LOGIN_URL = "account_login"
+LOGIN_REDIRECT_URL = "{{ '/app/' if use_spa else '/' }}"
+ACCOUNT_LOGOUT_REDIRECT_URL = "/"
+
+LANGUAGE_CODE = "en-gb"
+TIME_ZONE = str(config("TIME_ZONE", default="Africa/Accra"))
+USE_I18N = True
+USE_TZ = True
+
+STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
+STATICFILES_DIRS = [BASE_DIR / "assets"]
+{% if use_spa %}
+# The Vite build. Only added once it exists, so a fresh clone doesn't warn.
+if (BASE_DIR / "frontend" / "dist").exists():
+    STATICFILES_DIRS.append(BASE_DIR / "frontend" / "dist")
+{% endif %}
+MEDIA_URL = "media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
+STORAGES: dict[str, dict[str, Any]] = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+}
+
+# Tailwind: the source lives outside assets/ so it isn't collected; the output lands in
+# assets/css/tailwind.css (STATICFILES_DIRS[0] / TAILWIND_CLI_DIST_CSS).
+TAILWIND_CLI_SRC_CSS = "styles/source.css"
+TAILWIND_CLI_DIST_CSS = "css/tailwind.css"
+TAILWIND_CLI_VERSION = "4.3.5"
+{% if use_spa %}
+
+DJANGO_VITE = {
+    "default": {
+        "dev_mode": config("VITE_DEV_MODE", default=DEBUG, cast=bool),
+        "dev_server_port": 5173,
+        "manifest_path": BASE_DIR / "frontend" / "dist" / "manifest.json",
+    }
+}
+{% endif %}
+
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+DEFAULT_FROM_EMAIL = str(
+    config("DEFAULT_FROM_EMAIL", default=f"{PROJECT_NAME} <noreply@{{ domain }}>")
+)
+SERVER_EMAIL = DEFAULT_FROM_EMAIL
+
+UNFOLD = {
+    "SITE_TITLE": PROJECT_NAME,
+    "SITE_HEADER": PROJECT_NAME,
+}
+
+LOG_LEVEL = str(config("LOG_LEVEL", default="INFO")).upper()
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "plain": {"format": "%(asctime)s %(levelname)s %(name)s: %(message)s"},
+    },
+    "handlers": {
+        "stdout": {
+            "class": "logging.StreamHandler",
+            "stream": "ext://sys.stdout",
+            "formatter": "plain",
+        },
+    },
+    "root": {"handlers": ["stdout"], "level": LOG_LEVEL},
+    "loggers": {
+        # Drop Django's own console handler; records propagate to root instead.
+        "django": {"handlers": [], "level": LOG_LEVEL, "propagate": True},
+        # Very chatty at INFO (it logs on every management command).
+        "procrastinate": {"level": "WARNING"},
+    },
+}

@@ -1,0 +1,17 @@
+from .base import *
+
+DEBUG = True
+
+INSTALLED_APPS += ["debug_toolbar", "django_browser_reload"]
+MIDDLEWARE.insert(1, "debug_toolbar.middleware.DebugToolbarMiddleware")
+MIDDLEWARE += ["django_browser_reload.middleware.BrowserReloadMiddleware"]
+INTERNAL_IPS = ["127.0.0.1"]
+
+STORAGES["staticfiles"] = {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"}
+
+ACCOUNT_DEFAULT_HTTP_PROTOCOL = "http"
+{% if use_spa %}
+
+# base.py reads DEBUG from the environment before this file sets it, so make dev mode explicit.
+DJANGO_VITE["default"]["dev_mode"] = config("VITE_DEV_MODE", default=True, cast=bool)
+{% endif %}

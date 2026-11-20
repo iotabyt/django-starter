@@ -1,0 +1,86 @@
+[project]
+name = "{{ project_slug }}"
+version = "0.1.0"
+description = {{ description | tojson }}
+authors = [{ name = {{ author_name | tojson }}, email = {{ author_email | tojson }} }]
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "dj-database-url>=3.1.2",
+    "django>=6.0.10,<6.1",
+    "django-allauth[mfa,socialaccount]>=65.22.1",
+    "django-anymail[resend]>=15.2",
+    "django-htmx>=1.29.0",
+{% if use_spa %}
+    "django-ninja>=1.8.0",
+{% endif %}
+    "django-storages[s3]>=1.14.6",
+    "django-tailwind-cli>=4.9.0",
+    "django-unfold>=0.110.1",
+{% if use_spa %}
+    "django-vite>=3.2.0",
+{% endif %}
+    "gunicorn>=27.0.1",
+    "pillow>=13.0.0",
+    "procrastinate[django]>=3.12.0",
+    "psycopg[binary]>=3.3.9",
+{% if use_spa %}
+    "pydantic[email]>=2.14.4",
+{% endif %}
+    "python-decouple>=3.8",
+    "sentry-sdk[django]>=2.75.0",
+    "whitenoise>=6.12.0",
+]
+
+[dependency-groups]
+dev = [
+    "basedpyright>=1.40.2",
+    "django-browser-reload>=1.21.0",
+    "django-debug-toolbar>=8.0.0",
+    "django-types>=0.24.0",
+    "factory-boy>=3.3.3",
+    "honcho>=2.0.0",
+    "pre-commit>=4.7.0",
+    "pytest>=9.2.0",
+    "pytest-django>=4.14.0",
+    "ruff>=0.17.6",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+extend-exclude = ["**/migrations/**"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "DJ", "S", "SIM", "RUF"]
+ignore = ["S101", "RUF012"]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = ["S106"]
+"conftest.py" = ["S106"]
+"config/settings/*" = ["F403", "F405"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["apps", "config"]
+
+[tool.basedpyright]
+typeCheckingMode = "basic"
+pythonVersion = "3.13"
+venvPath = "."
+venv = ".venv"
+exclude = [
+    "**/migrations",
+    "**/node_modules",
+    "**/__pycache__",
+    ".venv",
+    "frontend",
+    "staticfiles",
+]
+reportAttributeAccessIssue = false
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.test"
+addopts = "--reuse-db -q"
+python_files = ["test_*.py", "tests.py"]
