@@ -1,0 +1,192 @@
+# {{ project_name }}
+
+{% if description %}
+{{ description }}
+
+{% endif %}
+Generated from [iotabyt/django-starter](https://github.com/iotabyt/django-starter).
+
+## Stack
+
+- **Django 6.0** with server-rendered templates, [htmx](https://htmx.org) and template partials
+- **Tailwind CSS v4** via django-tailwind-cli (no Node needed for the server-rendered pages)
+- **django-allauth**: email sign-in with mandatory verification, Google, TOTP and recovery codes
+- **Procrastinate**: background jobs and cron tasks, queued in Postgres
+- **Postgres 18**, **Unfold** admin, **WhiteNoise** for static files
+{% if use_orgs %}
+- **Organizations**: memberships with roles, and email invites
+{% endif %}
+{% if use_spa %}
+- **Django Ninja** API at `/api/` and a **React 19** SPA at `/app/` (Vite, TanStack Router and Query)
+{% endif %}
+- **Kamal 2** deploys to your own server; Resend email, Cloudflare R2 media, Sentry
+
+Tooling: [uv](https://docs.astral.sh/uv/), [just](https://just.systems), Ruff, basedpyright, pytest{{ ', Node 22' if use_spa else '' }}.
+
+## Getting started
+
+You need uv, just, Docker{{ ' and Node 22' if use_spa else '' }}.
+
+```bash
+git init
+just setup       # uv sync, .env with a fresh SECRET_KEY, Postgres, migrate, Tailwind{{ ', npm install' if use_spa else '' }}
+just superuser
+just dev         # http://localhost:8000
+```
+
+`just dev` runs Django, the Tailwind watcher, a Procrastinate worker{{ ' and the Vite dev server' if use_spa else '' }} with honcho
+(see `Procfile.dev`). Emails print to the terminal in development, including the verification
+link you need after signing up.
+
+Commit `uv.lock`{{ ' and `frontend/package-lock.json`' if use_spa else '' }}: the Docker build and CI install from them with `--locked`{{ ' / `npm ci`' if use_spa else '' }}.
+
+## Everyday commands
+
+| Command | What it does |
+|---|---|
+| `just dev` | Run everything for local development |
+| `just test` | Run pytest (`just test -k invite` passes arguments through) |
+| `just lint` | Ruff check, Ruff format check, basedpyright{{ ', tsc' if use_spa else '' }} |
+| `just fmt` | Fix lint issues and format |
+| `just makemigrations` | Create migrations |
+| `just migrate` | Apply migrations |
+| `just shell` | Django shell |
+| `just superuser` | Create an admin user |
+| `just db` | Start local Postgres (Docker Compose) |
+{% if use_spa %}
+| `just api-types` | Generate TypeScript types from the API's OpenAPI schema |
+{% endif %}
+| `just build` | Build the production Docker image locally |
+
+## Project layout
+
+```
+config/            settings (base, dev, test, prod), urls, wsgi/asgi, deploy.yml (Kamal)
+apps/core/         TimeStampedModel, health check, home page, example tasks
+apps/users/        custom email-only User and its admin
+{% if use_orgs %}
+apps/orgs/         organizations, memberships, invites (logic in services.py)
+{% endif %}
+{% if use_spa %}
+apps/api/          Django Ninja API
+frontend/          React SPA (Vite)
+{% endif %}
+templates/         Django templates (allauth/ overrides the auth pages' layout)
+styles/source.css  Tailwind entry point; builds to assets/css/tailwind.css
+bin/               docker-entrypoint, secret
+```
+
+Settings come from environment variables (`.env` locally) through python-decouple.
+`manage.py` uses `config.settings.dev`; `wsgi.py`/`asgi.py` default to `config.settings.prod`;
+pytest uses `config.settings.test`.
+
+## Background jobs
+
+Tasks live in each app's `tasks.py` and run in the Procrastinate worker
+(`python manage.py procrastinate worker`), which `just dev` starts and which runs as the
+`worker` role in production. Queue a job with:
+
+```python
+from apps.core.tasks import example_task
+
+example_task.defer(message="hello")
+```
+
+Periodic tasks use `@app.periodic(cron=...)`; see `nightly_cleanup` in `apps/core/tasks.py`.
+When a job depends on rows written in the same request, defer it from
+`transaction.on_commit(...)` so the worker never sees uncommitted data{{ ' (as `invite_member` does)' if use_orgs else '' }}.
+
+## htmx and template partials
+
+`base.html` loads htmx and sends the CSRF token on every htmx request (`hx-headers` on
+`<body>`). Django 6 template partials let one template hold a page and the fragments htmx
+swaps in: `templates/core/home.html` defines a `pong` partial with `partialdef pong inline`,
+and the `ping` view renders just that fragment with `render(request, "core/home.html#pong")`.
+`request.htmx` (django-htmx) tells you whether a request came from htmx.
+{% if use_spa %}
+
+## The SPA and how it authenticates
+
+`/app/...` is served by Django: the `spa` view requires a login, sets the CSRF cookie and
+renders `templates/spa.html`, and TanStack Router handles every route below it. Sign-in,
+sign-up, MFA and account pages stay server-rendered by allauth, so there is no JWT, no CORS
+and no allauth headless.
+
+The API uses the Django session cookie (`django_auth`). `frontend/src/lib/api.ts` sends
+cookies with `credentials: "same-origin"`, adds `X-CSRFToken` from the `csrftoken` cookie
+on non-GET requests (Ninja enforces CSRF for cookie auth), and sends you to the login page on a 401.
+
+In development, django-vite points the page at the Vite dev server on :5173 (HMR included).
+In production, Docker builds `frontend/dist`, Django serves it from `/static/` and
+django-vite reads `dist/manifest.json`. API docs are at `/api/docs` when `DEBUG` is on.
+{% endif %}
+
+## Deploying
+
+Production runs on a server prepared by `iotabyt-infra`: a `deploy` user in the `docker`
+group, reachable over Tailscale as `{{ server_host }}`, with only ports 80 and 443 open.
+Kamal builds the image locally, pushes it to `ghcr.io/{{ github_owner }}/{{ project_slug }}`, and runs
+it behind kamal-proxy, which gets a Let's Encrypt certificate for `{{ domain }}`.
+
+1. **DNS:** point an A record for `{{ domain }}` at the server's **public** IP. On Cloudflare, keep
+   it DNS-only (grey cloud) until the certificate has been issued.
+2. **Secrets:** `cp .env.production.example .env.production` and fill it in (it's gitignored).
+3. **Install Kamal 2:** `gem install kamal` (or use the Docker alias from the Kamal docs).
+4. **Be on the tailnet**, so `ssh deploy@{{ server_host }}` works.
+5. **First deploy:** `kamal setup`{{ ' (it also boots the Postgres accessory)' if database == 'accessory' else '' }}. After that, `kamal deploy`.
+
+On each deploy the new container runs migrations in `bin/docker-entrypoint` before gunicorn
+starts, and kamal-proxy only switches traffic once `/up` returns 200 (which includes a
+database check).
+
+Handy aliases from `config/deploy.yml`:
+
+| Command | What it does |
+|---|---|
+| `kamal console` | Django shell in production |
+| `kamal shell` | bash in the app container |
+| `kamal dbshell` | psql via `manage.py dbshell` |
+| `kamal createsuperuser` | Create an admin user |
+| `kamal logs` / `kamal worker-logs` | Follow web or worker logs |
+
+**How secrets work:** `.kamal/secrets` is committed and holds no values. Each line calls
+`bin/secret NAME`, which prints `$NAME` if it's set in the environment (handy in CI) and
+otherwise reads it from `.env.production` (or the file named by `KAMAL_ENV_FILE`). A missing
+key is an error; an empty value is allowed.
+{% if database == 'accessory' %}
+`DATABASE_URL` is built from `POSTGRES_PASSWORD` and points at the `{{ project_slug }}-db` accessory
+on Kamal's Docker network. The accessory publishes no port, because Docker-published ports
+bypass UFW. For nightly encrypted backups to R2, uncomment the `backup` accessory
+([pgbackup-r2](https://pgbackup-r2.iotabyt.com)) in `config/deploy.yml` and its secrets.
+{% endif %}
+
+## Security notes
+
+- **Move the admin:** set `ADMIN_URL` in `.env.production` to something unguessable.
+- **HSTS** starts at one day (`SECURE_HSTS_SECONDS=86400`). Once HTTPS works everywhere, raise it
+  to a year (`31536000`) and consider `SECURE_HSTS_INCLUDE_SUBDOMAINS=True`.
+- **Content Security Policy:** `SECURE_CSP` in `config/settings/prod.py` allows
+  `'unsafe-inline'` and `'unsafe-eval'` scripts, because the Unfold admin uses Alpine.js and
+  htmx `hx-on` attributes need eval. To tighten it, switch `script-src` to
+  `[CSP.SELF, CSP.NONCE]`, add a `nonce` attribute (the `csp_nonce` template variable) to any
+  inline `<script>`, replace `hx-on` with `addEventListener` in your own JavaScript, and give
+  only the admin the relaxed policy with Django's `csp_override` decorator. For example, wrap
+  every admin view from a custom `AdminSite`:
+
+  ```python
+  from django.contrib import admin
+  from django.utils.csp import CSP
+  from django.views.decorators.csp import csp_override
+
+  ADMIN_CSP = {
+      "default-src": [CSP.SELF],
+      "script-src": [CSP.SELF, CSP.UNSAFE_INLINE, CSP.UNSAFE_EVAL],
+      "style-src": [CSP.SELF, CSP.UNSAFE_INLINE],
+      "img-src": [CSP.SELF, "data:", "https:"],
+  }
+
+
+  class AdminSite(admin.AdminSite):
+      def admin_view(self, view, cacheable=False):
+          return csp_override(ADMIN_CSP)(super().admin_view(view, cacheable))
+  ```
