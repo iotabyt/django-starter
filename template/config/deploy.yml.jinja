@@ -1,6 +1,7 @@
 # Kamal 2: https://kamal-deploy.org/docs/configuration/overview/
-# The server is prepared by iotabyt-infra: a `deploy` user in the docker group, reachable
-# over Tailscale, with only 80/443 open publicly. Run Kamal from a machine on the tailnet.
+# Expects a server prepared with a `deploy` user in the docker group, UFW allowing only
+# 80/443, and SSH over Tailscale (any provisioning tool works; an Ansible playbook is a
+# good fit). Run Kamal from a machine on the tailnet.
 service: {{ project_slug }}
 image: {{ github_owner }}/{{ project_slug }}
 

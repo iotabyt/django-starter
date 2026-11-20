@@ -123,8 +123,9 @@ django-vite reads `dist/manifest.json`. API docs are at `/api/docs` when `DEBUG`
 
 ## Deploying
 
-Production runs on a server prepared by `iotabyt-infra`: a `deploy` user in the `docker`
-group, reachable over Tailscale as `{{ server_host }}`, with only ports 80 and 443 open.
+Production runs on a server prepared with a `deploy` user in the `docker` group, UFW
+allowing only ports 80 and 443, and SSH over Tailscale as `{{ server_host }}`. Any provisioning
+tool works; an Ansible playbook is a good fit.
 Kamal builds the image locally, pushes it to `ghcr.io/{{ github_owner }}/{{ project_slug }}`, and runs
 it behind kamal-proxy, which gets a Let's Encrypt certificate for `{{ domain }}`.
 
