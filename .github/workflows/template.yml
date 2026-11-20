@@ -43,7 +43,7 @@ jobs:
           # Copier renders from git (--vcs-ref HEAD), so give it full history.
           fetch-depth: 0
 
-      - uses: astral-sh/setup-uv@v10
+      - uses: astral-sh/setup-uv@v10.3.3
 
       - uses: actions/setup-node@v7
         if: matrix.use_spa
