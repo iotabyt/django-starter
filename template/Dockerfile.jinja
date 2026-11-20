@@ -38,6 +38,9 @@ RUN apt-get update \
     && groupadd --system app \
     && useradd --system --gid app --home-dir /app --no-create-home app
 
+# Also covers `docker exec` / `kamal app exec`, which bypass the entrypoint.
+ENV DJANGO_SETTINGS_MODULE=config.settings.prod
+
 COPY --from=deps /opt/venv /opt/venv
 COPY . .
 {% if use_spa %}
@@ -46,7 +49,7 @@ COPY --from=frontend /frontend/dist /app/frontend/dist
 
 # Build CSS and collect static files. The env values only satisfy settings; nothing
 # connects to a database here. The Tailwind binary is removed afterwards.
-RUN SECRET_KEY=build-only-not-secret DATABASE_URL=postgres://build/build DJANGO_SETTINGS_MODULE=config.settings.prod \
+RUN SECRET_KEY=build-only-not-secret DATABASE_URL=postgres://build/build \
     sh -c "python manage.py tailwind build && python manage.py collectstatic --noinput" \
     && rm -rf .django_tailwind_cli
 
