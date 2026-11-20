@@ -1,0 +1,11 @@
+{% autoescape off %}Hello,
+
+{% if invite.invited_by %}{{ invite.invited_by.get_full_name|default:invite.invited_by.email }} has invited you{% else %}You've been invited{% endif %} to join {{ organization.name }} on {{ project_name }} as {{ invite.get_role_display|lower }}.
+
+Accept the invite here:
+{{ accept_url }}
+
+The link expires on {{ invite.expires_at|date:"j F Y" }}. Sign in (or sign up) with {{ invite.email }} to accept it.
+
+If you weren't expecting this, you can ignore this email.
+{% endautoescape %}
