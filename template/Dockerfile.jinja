@@ -19,11 +19,12 @@ ENV PYTHONUNBUFFERED=1 \
     UV_PYTHON_DOWNLOADS=never \
     UV_PROJECT_ENVIRONMENT=/opt/venv \
     PATH="/opt/venv/bin:$PATH"
-COPY --from=ghcr.io/astral-sh/uv:0.11 /uv /uvx /bin/
 WORKDIR /app
 
 # ---- Dependencies (cached until pyproject.toml or uv.lock change) ----
+# uv is only needed here, so it never reaches the runtime image.
 FROM base AS deps
+COPY --from=ghcr.io/astral-sh/uv:0.11 /uv /bin/uv
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
     --mount=type=bind,source=uv.lock,target=uv.lock \
@@ -42,15 +43,19 @@ RUN apt-get update \
 ENV DJANGO_SETTINGS_MODULE=config.settings.prod
 
 COPY --from=deps /opt/venv /opt/venv
-COPY . .
+# Runtime code only: the frontend sources, tests and dev files stay out (see also .dockerignore).
+COPY --exclude=frontend --exclude=**/tests --exclude=conftest.py --exclude=uv.lock . .
 {% if use_spa %}
 COPY --from=frontend /frontend/dist /app/frontend/dist
 {% endif %}
 
 # Build CSS and collect static files. The env values only satisfy settings; nothing
 # connects to a database here. The Tailwind binary is removed afterwards.
+{% if use_spa %}
+# `--ignore ninja` skips Ninja's Swagger UI assets (~20 MB): /api/docs is off in production.
+{% endif %}
 RUN SECRET_KEY=build-only-not-secret DATABASE_URL=postgres://build/build \
-    sh -c "python manage.py tailwind build && python manage.py collectstatic --noinput" \
+    sh -c "python manage.py tailwind build && python manage.py collectstatic --noinput{{ ' --ignore ninja' if use_spa else '' }}" \
     && rm -rf .django_tailwind_cli
 
 RUN mkdir -p /app/media && chown app:app /app/media

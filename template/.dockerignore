@@ -14,3 +14,13 @@ assets/css/tailwind.css
 .pytest_cache
 .ruff_cache
 openapi.json
+# Dev-only files
+README.md
+justfile
+Procfile.dev
+docker-compose.yml
+.pre-commit-config.yaml
+.copier-answers.yml
+.gitignore
+.dockerignore
+Dockerfile
