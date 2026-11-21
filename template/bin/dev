@@ -1,0 +1,15 @@
+#!/bin/sh
+# Run the app for development: Django, the Tailwind watcher, the worker (and Vite, with a
+# frontend). Starts the Docker Postgres first unless DATABASE_URL is already reachable.
+set -eu
+cd "$(dirname "$0")/.."
+# shellcheck source=bin/lib.sh
+. bin/lib.sh
+
+if [ ! -f .env ] || [ ! -d .venv ]; then
+  fail "Not set up yet: run bin/setup first"
+  exit 1
+fi
+
+ensure_postgres
+exec uv run honcho -f Procfile.dev start

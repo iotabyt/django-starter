@@ -1,4 +1,5 @@
-# Local development only. Production runs Postgres as a Kamal accessory (or externally).
+# Local development only, and only if you have no Postgres of your own: bin/setup and
+# bin/dev start it when DATABASE_URL isn't reachable. Production uses Kamal (or external).
 services:
   db:
     image: postgres:18
@@ -7,7 +8,7 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: {{ db_name }}
     ports:
-      # Set DB_PORT in .env (and DATABASE_URL to match) if 5432 is taken.
+      # bin/setup and bin/dev set DB_PORT from the port in DATABASE_URL.
       - "127.0.0.1:${DB_PORT:-5432}:5432"
     volumes:
       # The PG18 image keeps its data in /var/lib/postgresql/<major>/, not .../data.

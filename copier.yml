@@ -17,10 +17,10 @@ _message_after_copy: |
   Next steps:
 
     cd {{ _copier_conf.dst_path }}
-    git init
-    just setup        # uv sync, .env, Postgres, migrations, Tailwind{{ ', npm install' if use_spa else '' }}
-    just superuser
-    just dev          # http://localhost:8000
+    bin/setup
+    bin/dev
+
+  Optional: `uv tool install rust-just` for shortcut commands (just --list).
 
   Commit uv.lock{{ ' and frontend/package-lock.json' if use_spa else '' }} with your first commit.
   Pull later template changes with: copier update

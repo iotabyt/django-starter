@@ -58,9 +58,20 @@ jobs:
           -d database=${{ matrix.database }}
           . "$PROJECT_DIR"
 
-      - name: uv sync
+      # DATABASE_URL points at the postgres service, so this exercises the "Postgres already
+      # reachable, no Docker" path. Fail if bin/setup started Docker Compose instead.
+      - name: bin/setup
         working-directory: ${{ env.PROJECT_DIR }}
-        run: uv sync
+        run: |
+          bin/setup | tee setup.log
+          grep -q "Using existing Postgres" setup.log
+
+      - name: bin/setup again (idempotent)
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: |
+          bin/setup | tee setup-again.log
+          grep -q ".env exists (left unchanged)" setup-again.log
+          grep -q "Database my_project exists" setup-again.log
 
       - name: ruff check
         working-directory: ${{ env.PROJECT_DIR }}

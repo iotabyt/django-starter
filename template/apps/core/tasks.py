@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 @app.task(queue="default")
 def example_task(message: str) -> str:
-    """Queue with `example_task.defer(message="hi")`; `just dev` runs a worker."""
+    """Queue with `example_task.defer(message="hi")`; `bin/dev` runs a worker."""
     logger.info("example_task: %s", message)
     return message
 

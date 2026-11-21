@@ -21,20 +21,25 @@ Generated from [iotabyt/django-starter](https://github.com/iotabyt/django-starte
 {% endif %}
 - **Kamal 2** deploys to your own server; Resend email, Cloudflare R2 media, Sentry
 
-Tooling: [uv](https://docs.astral.sh/uv/), [just](https://just.systems), Ruff, basedpyright, pytest{{ ', Node 22' if use_spa else '' }}.
+Tooling: [uv](https://docs.astral.sh/uv/), Ruff, basedpyright, pytest{{ ', Node 22' if use_spa else '' }}; [just](https://just.systems) is optional.
 
 ## Getting started
 
-You need uv, just, Docker{{ ' and Node 22' if use_spa else '' }}.
+The only hard requirement is **uv** (`curl -LsSf https://astral.sh/uv/install.sh | sh`), plus
+**Docker or an existing Postgres**{{ ' and **Node 22+** for the frontend' if use_spa else '' }}.
 
 ```bash
-git init
-just setup       # uv sync, .env with a fresh SECRET_KEY, Postgres, migrate, Tailwind{{ ', npm install' if use_spa else '' }}
-just superuser
-just dev         # http://localhost:8000
+bin/setup      # checks prerequisites, then: git init, .env, Postgres, packages, database, CSS
+bin/dev        # http://localhost:8000
+uv run python manage.py createsuperuser
 ```
 
-`just dev` runs Django, the Tailwind watcher, a Procrastinate worker{{ ' and the Vite dev server' if use_spa else '' }} with honcho
+`bin/setup` is safe to re-run whenever things change (new dependencies, new migrations).
+It uses the Postgres in `DATABASE_URL` (in `.env`) if one is already listening there, so a
+native install needs no Docker; otherwise it starts the Docker Compose one on that URL's port.
+If port 5432 is taken, change the port in `DATABASE_URL` and run `bin/setup` again.
+
+`bin/dev` runs Django, the Tailwind watcher, a Procrastinate worker{{ ' and the Vite dev server' if use_spa else '' }} with honcho
 (see `Procfile.dev`). Emails print to the terminal in development, including the verification
 link you need after signing up.
 
@@ -42,21 +47,24 @@ Commit `uv.lock`{{ ' and `frontend/package-lock.json`' if use_spa else '' }}: th
 
 ## Everyday commands
 
-| Command | What it does |
-|---|---|
-| `just dev` | Run everything for local development |
-| `just test` | Run pytest (`just test -k invite` passes arguments through) |
-| `just lint` | Ruff check, Ruff format check, basedpyright{{ ', tsc' if use_spa else '' }} |
-| `just fmt` | Fix lint issues and format |
-| `just makemigrations` | Create migrations |
-| `just migrate` | Apply migrations |
-| `just shell` | Django shell |
-| `just superuser` | Create an admin user |
-| `just db` | Start local Postgres (Docker Compose) |
+Shortcuts are in the `justfile`; install just with `uv tool install rust-just` if you want
+them (`just --list`). Everything works without it:
+
+| Command | just shortcut | What it does |
+|---|---|---|
+| `bin/setup` | `just setup` | Set up or refresh the environment |
+| `bin/dev` | `just dev` | Run everything for local development |
+| `uv run pytest` | `just test` | Run the tests (`just test -k invite` passes arguments through) |
+| `uv run ruff check . && uv run ruff format --check . && uv run basedpyright` | `just lint` | Lint, format check and type check{{ ' (`just lint` also runs tsc)' if use_spa else '' }} |
+| `uv run ruff check --fix . && uv run ruff format .` | `just fmt` | Fix lint issues and format |
+| `uv run python manage.py makemigrations` | `just makemigrations` | Create migrations |
+| `uv run python manage.py migrate` | `just migrate` | Apply migrations |
+| `uv run python manage.py shell` | `just shell` | Django shell |
+| `uv run python manage.py createsuperuser` | `just superuser` | Create an admin user |
 {% if use_spa %}
-| `just api-types` | Generate TypeScript types from the API's OpenAPI schema |
+| see the `api-types` recipe | `just api-types` | Generate TypeScript types from the API's OpenAPI schema |
 {% endif %}
-| `just build` | Build the production Docker image locally |
+| `docker build -t {{ project_slug }}:local .` | `just build` | Build the production Docker image locally |
 
 ## Project layout
 
@@ -73,7 +81,7 @@ frontend/          React SPA (Vite)
 {% endif %}
 templates/         Django templates (allauth/ overrides the auth pages' layout)
 styles/source.css  Tailwind entry point; builds to assets/css/tailwind.css
-bin/               docker-entrypoint, secret
+bin/               setup, dev (local), docker-entrypoint, secret (deploy)
 ```
 
 Settings come from environment variables (`.env` locally) through python-decouple.
@@ -83,7 +91,7 @@ pytest uses `config.settings.test`.
 ## Background jobs
 
 Tasks live in each app's `tasks.py` and run in the Procrastinate worker
-(`python manage.py procrastinate worker`), which `just dev` starts and which runs as the
+(`python manage.py procrastinate worker`), which `bin/dev` starts and which runs as the
 `worker` role in production. Queue a job with:
 
 ```python

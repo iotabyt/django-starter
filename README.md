@@ -8,15 +8,18 @@ Kamal 2 deploys to your own server. Organizations and a React SPA are optional.
 ## Use it
 
 ```bash
-uvx copier copy gh:iotabyt/django-starter my-app
+curl -LsSf https://astral.sh/uv/install.sh | sh     # 0. uv, if you don't have it yet
+uvx copier copy gh:iotabyt/django-starter my-app   # 1. generate
 cd my-app
-git init
-just setup
-just dev
+bin/setup                                          # 2. git init, .env, Postgres, packages, database, CSS
+bin/dev                                            # 3. http://localhost:8000
 ```
 
-You need [uv](https://docs.astral.sh/uv/), [just](https://just.systems) and Docker (plus
-Node 22 for the SPA). The generated project's README covers development and deployment.
+uv is the only hard requirement, plus Docker **or** an existing Postgres (`bin/setup` uses
+whatever `DATABASE_URL` points at if it's reachable, and only starts Docker Compose
+otherwise) and Node 22+ for the SPA. [just](https://just.systems) is optional
+(`uv tool install rust-just`) and adds shortcuts such as `just test`. The generated
+project's README covers development and deployment.
 
 ### Options
 
@@ -72,13 +75,14 @@ Commit first (`--vcs-ref HEAD` renders the committed tree), then generate all fo
 ```bash
 uvx copier copy --defaults --vcs-ref HEAD -d use_spa=true -d use_orgs=false -d database=external . /tmp/t-spa
 cd /tmp/t-spa
-uv sync && just db
+bin/setup && bin/setup      # the second run proves it's idempotent
 uv run pytest && uv run ruff check . && uv run ruff format --check . && uv run basedpyright
 uv run python manage.py makemigrations --check --dry-run
 npm --prefix frontend ci && npm --prefix frontend run build && npm --prefix frontend run typecheck
 ```
 
 Also grep the output for leftover `{{` / `{%` outside `templates/` and the justfile.
+`.github/workflows/template.yml` does all of this in CI for every combination.
 
 ### Regenerating migrations
 
@@ -88,7 +92,7 @@ Migrations are generated, then copied back into the template. Generate `users` f
 ```bash
 uvx copier copy --defaults --vcs-ref HEAD -d use_spa=false . /tmp/t-mig && cd /tmp/t-mig
 rm apps/users/migrations/0001_initial.py "apps/orgs/migrations/0001_initial.py"
-uv sync && just db
+uv sync                     # makemigrations doesn't need a database
 uv run python manage.py makemigrations users
 uv run python manage.py makemigrations orgs
 ```

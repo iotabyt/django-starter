@@ -1,27 +1,20 @@
-# Local development tasks. Deploys use Kamal directly: see the README.
+# Optional shortcuts: just is never required. bin/setup and bin/dev do the real work.
+# Install with: uv tool install rust-just
 
 default:
     @just --list
 
-# First-time setup: deps, .env, Postgres, migrations, CSS
+# First-time setup (or refresh): same as bin/setup
 setup:
-    uv sync
-    [ -f .env ] || sed "s|^SECRET_KEY=.*|SECRET_KEY=$(uv run python -c 'import secrets; print(secrets.token_urlsafe(50))')|" .env.example > .env
-{% if use_spa %}
-    npm --prefix frontend install
-{% endif %}
-    docker compose up -d --wait db
-    uv run python manage.py migrate
-    uv run python manage.py tailwind build
-    @if git rev-parse --git-dir >/dev/null 2>&1; then uv run pre-commit install; else echo "Not a git repo yet: run 'git init' then 'uv run pre-commit install'."; fi
+    bin/setup
 
-# Run Django, the Tailwind watcher, the worker{{ ' and Vite' if use_spa else '' }}
-dev: db
-    uv run honcho -f Procfile.dev start
+# Run Django, the Tailwind watcher, the worker{{ ' and Vite' if use_spa else '' }}: same as bin/dev
+dev:
+    bin/dev
 
-# Start local Postgres
+# Start local Postgres (Docker) unless DATABASE_URL is already reachable
 db:
-    docker compose up -d --wait db
+    sh -c '. bin/lib.sh && ensure_postgres'
 
 migrate:
     uv run python manage.py migrate

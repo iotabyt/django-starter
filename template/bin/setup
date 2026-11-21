@@ -1,0 +1,100 @@
+#!/bin/sh
+# Set up (or refresh) the development environment. Safe to re-run at any time.
+#
+# Needs uv, plus Node 22+ if there's a frontend/. Postgres comes from DATABASE_URL if
+# something is already listening there (a native install, say); otherwise Docker Compose
+# starts one. just is optional.
+set -eu
+cd "$(dirname "$0")/.."
+# shellcheck source=bin/lib.sh
+. bin/lib.sh
+
+printf '%sSetting up %s%s\n' "$_bold" "$(basename "$PWD")" "$_reset"
+
+header "Prerequisites"
+if command -v uv >/dev/null 2>&1; then
+  ok "uv $(uv --version | cut -d' ' -f2)"
+else
+  fail "uv is required but isn't installed"
+  hint "Install it:  curl -LsSf https://astral.sh/uv/install.sh | sh"
+  hint "then open a new terminal and run bin/setup again."
+  exit 1
+fi
+
+if [ -d frontend ]; then
+  _node_major=0
+  if command -v node >/dev/null 2>&1; then
+    _node_major=$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || echo 0)
+  fi
+  if [ "$_node_major" -ge 22 ]; then
+    ok "Node $(node --version)"
+  else
+    fail "Node 22+ is required for the frontend (found: $(node --version 2>/dev/null || echo none))"
+    hint "With nvm:  nvm install 22   (https://github.com/nvm-sh/nvm)"
+    hint "With fnm:  fnm install 22   (https://github.com/Schniz/fnm)"
+    exit 1
+  fi
+fi
+
+_have_git=false
+if command -v git >/dev/null 2>&1; then
+  _have_git=true
+  ok "git $(git --version | cut -d' ' -f3)"
+else
+  tip "git not found: skipping git init and the pre-commit hooks"
+fi
+
+if command -v just >/dev/null 2>&1; then
+  ok "just (optional)"
+else
+  tip "Optional: uv tool install rust-just  (shortcut commands: just --list)"
+fi
+
+header "Project"
+if $_have_git; then
+  if git rev-parse --git-dir >/dev/null 2>&1; then
+    ok "Git repository"
+  else
+    run "Created git repository (branch main)" sh -c 'git init -q && git symbolic-ref HEAD refs/heads/main'
+  fi
+fi
+
+if [ -f .env ]; then
+  ok ".env exists (left unchanged)"
+else
+  _key=$(LC_ALL=C tr -dc 'A-Za-z0-9_-' </dev/urandom | head -c 50)
+  sed "s|^SECRET_KEY=.*|SECRET_KEY=$_key|" .env.example >.env
+  ok "Created .env with a new SECRET_KEY"
+fi
+
+header "Postgres"
+ensure_postgres
+
+header "Dependencies"
+run "Python packages (uv sync)" uv sync
+if [ -d frontend ]; then
+  run "Frontend packages (npm install)" npm --prefix frontend install --no-audit --no-fund
+fi
+
+header "Database"
+if _msg=$(ensure_database 2>&1); then
+  ok "$_msg"
+else
+  fail "Couldn't connect to the database in DATABASE_URL"
+  printf '%s\n' "$_msg" | tail -n 5 | sed 's/^/    /' >&2
+  exit 1
+fi
+run "Migrations applied" uv run python manage.py migrate --noinput
+
+header "Assets"
+run "Tailwind CSS built" uv run python manage.py tailwind build
+
+if $_have_git && git rev-parse --git-dir >/dev/null 2>&1; then
+  header "Git hooks"
+  run "pre-commit hooks installed" uv run pre-commit install
+fi
+
+header "Done. Next steps"
+printf '  %sbin/dev%s                                   run the app at http://localhost:8000\n' "$_bold" "$_reset"
+printf '  %suv run python manage.py createsuperuser%s   create an admin user (or: just superuser)\n' "$_bold" "$_reset"
+printf '\n'

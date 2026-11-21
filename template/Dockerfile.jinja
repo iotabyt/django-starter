@@ -44,7 +44,8 @@ ENV DJANGO_SETTINGS_MODULE=config.settings.prod
 
 COPY --from=deps /opt/venv /opt/venv
 # Runtime code only: the frontend sources, tests and dev files stay out (see also .dockerignore).
-COPY --exclude=frontend --exclude=**/tests --exclude=conftest.py --exclude=uv.lock . .
+COPY --exclude=frontend --exclude=**/tests --exclude=conftest.py --exclude=uv.lock \
+    --exclude=bin/setup --exclude=bin/dev --exclude=bin/lib.sh . .
 {% if use_spa %}
 COPY --from=frontend /frontend/dist /app/frontend/dist
 {% endif %}
