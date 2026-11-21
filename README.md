@@ -19,12 +19,22 @@ A freshly generated project with the defaults (`use_spa` and `use_orgs` on), str
 | **Settings: two-factor authentication**<br>![Two-factor settings](screenshots/settings-two-factor.png) | **Accepting an invite**<br>![Invite page](screenshots/invite.png) |
 | **Organization page without the SPA** (`use_spa=false`, server-rendered with htmx)<br>![Server-rendered organization page](screenshots/organization-server-rendered.png) | **Admin** (Unfold)<br>![Unfold admin](screenshots/admin.png) |
 
+Dark mode follows the operating system, and a toggle in the navbar (on the server pages and
+in the SPA) lets people choose:
+
+| | |
+|---|---|
+| **Sign in**<br>![Sign in in dark mode](screenshots/sign-in-dark.png) | **Signed in: home and profile menu**<br>![Signed-in home in dark mode](screenshots/home-signed-in-dark.png) |
+| **Dashboard**<br>![Dashboard in dark mode](screenshots/dashboard-dark.png) | **Organization**<br>![Organization page in dark mode](screenshots/organization-dark.png) |
+
 On a phone:
 
 <p>
   <img src="screenshots/mobile-home.png" alt="Landing page on a phone" width="260">
   &nbsp;
   <img src="screenshots/mobile-dashboard.png" alt="Dashboard on a phone" width="260">
+  &nbsp;
+  <img src="screenshots/mobile-dashboard-dark.png" alt="Dashboard on a phone in dark mode" width="260">
 </p>
 
 ## Use it
