@@ -15,8 +15,10 @@ export function Avatar({ name, email, small }: { name: string; email: string; sm
 }
 
 const roleStyles: Record<string, string> = {
-  owner: "bg-violet-50 text-violet-700 ring-violet-200",
-  admin: "bg-indigo-50 text-indigo-700 ring-indigo-200",
+  owner:
+    "bg-violet-50 text-violet-700 ring-violet-200 dark:bg-violet-500/10 dark:text-violet-400 dark:ring-violet-500/30",
+  admin:
+    "bg-indigo-50 text-indigo-700 ring-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-400 dark:ring-indigo-500/30",
 };
 
 export function RoleBadge({ role }: { role: string }) {
@@ -34,6 +36,8 @@ const paths = {
   envelope:
     "M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75",
   home: "m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25",
+  moon: "M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z",
+  sun: "M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z",
   lock: "M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z",
   shield:
     "M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z",
@@ -66,11 +70,33 @@ export function Icon({ name, className = "size-5" }: { name: IconName; className
 export function EmptyState({ icon, title, children }: { icon: IconName; title: string; children: ReactNode }) {
   return (
     <div className="card flex flex-col items-center px-6 py-12 text-center">
-      <span className="inline-flex size-12 items-center justify-center rounded-full bg-indigo-50 text-indigo-600">
+      <span className="inline-flex size-12 items-center justify-center rounded-full bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
         <Icon name={icon} className="size-6" />
       </span>
       <h2 className="mt-4 font-semibold">{title}</h2>
-      <div className="mt-1 max-w-sm text-sm text-gray-600">{children}</div>
+      <div className="mt-1 max-w-sm text-sm text-gray-600 dark:text-gray-400">{children}</div>
     </div>
+  );
+}
+
+declare global {
+  interface Window {
+    // Defined by Django's static js/theme.js, which spa.html loads before the app.
+    toggleTheme?: () => void;
+  }
+}
+
+export function ThemeToggle() {
+  return (
+    <button
+      type="button"
+      onClick={() => window.toggleTheme?.()}
+      aria-label="Toggle dark mode"
+      title="Toggle dark mode"
+      className="cursor-pointer rounded-md p-2 text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-100"
+    >
+      <Icon name="moon" className="size-5 dark:hidden" />
+      <Icon name="sun" className="hidden size-5 dark:block" />
+    </button>
   );
 }

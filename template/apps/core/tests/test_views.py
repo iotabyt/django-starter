@@ -7,6 +7,9 @@ def test_home(client):
     response = client.get("/")
     assert response.status_code == 200
     assert b'id="pong"' in response.content
+    # Dark mode: applied before paint by theme.js, switched with the navbar toggle.
+    assert b"js/theme.js" in response.content
+    assert b"data-theme-toggle" in response.content
 
 
 def test_ping_returns_only_the_partial(client):

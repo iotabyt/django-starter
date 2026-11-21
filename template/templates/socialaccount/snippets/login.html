@@ -3,9 +3,9 @@
 {% if socialaccount_providers %}
   {% if not SOCIALACCOUNT_ONLY %}
     <div class="relative flex items-center py-1" aria-hidden="true">
-      <div class="flex-grow border-t border-gray-200"></div>
-      <span class="mx-3 text-xs font-medium tracking-wide text-gray-500 uppercase">or</span>
-      <div class="flex-grow border-t border-gray-200"></div>
+      <div class="flex-grow border-t border-gray-200 dark:border-gray-800"></div>
+      <span class="mx-3 text-xs font-medium tracking-wide text-gray-500 uppercase dark:text-gray-400">or</span>
+      <div class="flex-grow border-t border-gray-200 dark:border-gray-800"></div>
     </div>
   {% endif %}
   {% include "socialaccount/snippets/provider_list.html" with process="login" %}

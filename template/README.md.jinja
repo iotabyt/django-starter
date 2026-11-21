@@ -42,6 +42,10 @@ If port 5432 is taken, change the port in `DATABASE_URL` and run `bin/setup` aga
 Tailwind CLI is downloaded once per machine to `~/.cache/django-tailwind-cli`
 (`TAILWIND_CLI_PATH` in `.env` changes that).
 
+Dark mode follows the operating system, and the sun/moon button in the navbar lets people pick
+(the choice is kept in `localStorage`). `assets/js/theme.js` applies it before the page paints;
+style both themes with Tailwind's `dark:` variant, e.g. `bg-white dark:bg-gray-900`.
+
 The Django Debug Toolbar starts collapsed on the right; set `DEBUG_TOOLBAR=False` in `.env`
 to turn it off.
 
@@ -87,7 +91,8 @@ frontend/          React SPA (Vite)
 {% endif %}
 templates/         Django templates; allauth/ restyles the auth pages, settings/ is the settings layout
 styles/source.css  Tailwind entry point and UI building blocks (buttons, cards, inputs, badges)
-assets/js/ui.js    tiny helpers: closing dropdowns, auto-submitting selects, confirm prompts
+assets/js/theme.js applies light/dark mode before the page paints
+assets/js/ui.js    tiny helpers: dropdowns, the theme toggle, auto-submitting selects, confirm prompts
 bin/               setup, dev (local), docker-entrypoint, secret (deploy)
 ```
 

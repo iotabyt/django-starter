@@ -1,5 +1,15 @@
 @import "tailwindcss";
 
+/* Dark mode follows a `dark` class on <html>, set by assets/js/theme.js (the OS setting
+   unless you've chosen one with the navbar toggle). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  .dark {
+    color-scheme: dark;
+  }
+}
+
 @source "../templates";
 @source "../apps";
 
@@ -13,23 +23,23 @@
 }
 
 @utility btn-secondary {
-  @apply btn bg-white text-gray-900 ring-1 ring-gray-300 ring-inset hover:bg-gray-50 focus-visible:outline-indigo-600;
+  @apply btn bg-white text-gray-900 ring-1 ring-gray-300 ring-inset hover:bg-gray-50 focus-visible:outline-indigo-600 dark:bg-gray-900 dark:text-gray-100 dark:ring-gray-700 dark:hover:bg-gray-800;
 }
 
 @utility btn-danger {
-  @apply btn bg-white text-red-600 ring-1 ring-red-200 ring-inset hover:bg-red-50 focus-visible:outline-red-600;
+  @apply btn bg-white text-red-600 ring-1 ring-red-200 ring-inset hover:bg-red-50 focus-visible:outline-red-600 dark:bg-gray-900 dark:text-red-400 dark:ring-red-500/30 dark:hover:bg-red-500/10;
 }
 
 @utility link {
-  @apply cursor-pointer font-medium text-indigo-600 hover:text-indigo-500 hover:underline;
+  @apply cursor-pointer font-medium text-indigo-600 hover:text-indigo-500 hover:underline dark:text-indigo-400 dark:hover:text-indigo-300;
 }
 
 @utility input {
-  @apply block w-full rounded-lg border-0 bg-white px-3 py-2 text-sm text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset placeholder:text-gray-400 focus:ring-2 focus:ring-indigo-600 focus:outline-none disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500 disabled:shadow-none;
+  @apply block w-full rounded-lg border-0 bg-white px-3 py-2 text-sm text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset placeholder:text-gray-400 focus:ring-2 focus:ring-indigo-600 focus:outline-none disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500 disabled:shadow-none dark:bg-gray-900 dark:text-gray-100 dark:ring-gray-700 dark:placeholder:text-gray-500 dark:disabled:bg-gray-950 dark:disabled:text-gray-400;
 }
 
 @utility card {
-  @apply rounded-xl border border-gray-200 bg-white shadow-xs;
+  @apply rounded-xl border border-gray-200 bg-white shadow-xs dark:border-gray-800 dark:bg-gray-900;
 }
 
 @layer components {
@@ -43,13 +53,13 @@
 
   /* Navbar */
   .nav-link {
-    @apply rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900;
+    @apply rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-100;
   }
   .nav-link-active {
-    @apply bg-gray-100 text-gray-900;
+    @apply bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-gray-100;
   }
   .avatar {
-    @apply inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-sm font-semibold text-indigo-700 ring-2 ring-white;
+    @apply inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-sm font-semibold text-indigo-700 ring-2 ring-white dark:bg-indigo-500/20 dark:text-indigo-300 dark:ring-gray-900;
   }
   .avatar-sm {
     @apply size-8 text-xs;
@@ -60,36 +70,36 @@
     @apply relative;
   }
   .dropdown > summary {
-    @apply flex cursor-pointer list-none items-center gap-1.5 rounded-full p-0.5 pr-1.5 hover:bg-gray-100;
+    @apply flex cursor-pointer list-none items-center gap-1.5 rounded-full p-0.5 pr-1.5 hover:bg-gray-100 dark:hover:bg-gray-800;
   }
   .dropdown > summary::-webkit-details-marker {
     display: none;
   }
   .dropdown-menu {
-    @apply absolute right-0 z-40 mt-2 w-64 origin-top-right overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg ring-1 ring-black/5;
+    @apply absolute right-0 z-40 mt-2 w-64 origin-top-right overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg ring-1 ring-black/5 dark:border-gray-800 dark:bg-gray-900;
   }
   .dropdown-item {
-    @apply flex w-full cursor-pointer items-center gap-3 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900;
+    @apply flex w-full cursor-pointer items-center gap-3 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-100;
   }
   .dropdown-item svg {
-    @apply size-4 text-gray-400;
+    @apply size-4 text-gray-400 dark:text-gray-500;
   }
 
   /* Badges */
   .badge {
-    @apply inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700 ring-1 ring-gray-200 ring-inset;
+    @apply inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700 ring-1 ring-gray-200 ring-inset dark:bg-gray-800 dark:text-gray-300 dark:ring-gray-700;
   }
   .badge-owner {
-    @apply bg-violet-50 text-violet-700 ring-violet-200;
+    @apply bg-violet-50 text-violet-700 ring-violet-200 dark:bg-violet-500/10 dark:text-violet-400 dark:ring-violet-500/30;
   }
   .badge-admin {
-    @apply bg-indigo-50 text-indigo-700 ring-indigo-200;
+    @apply bg-indigo-50 text-indigo-700 ring-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-400 dark:ring-indigo-500/30;
   }
   .badge-success {
-    @apply bg-green-50 text-green-700 ring-green-200;
+    @apply bg-green-50 text-green-700 ring-green-200 dark:bg-green-500/10 dark:text-green-400 dark:ring-green-500/30;
   }
   .badge-warning {
-    @apply bg-amber-50 text-amber-800 ring-amber-200;
+    @apply bg-amber-50 text-amber-800 ring-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:ring-amber-500/30;
   }
 
   /* Flash messages */
@@ -97,16 +107,16 @@
     @apply flex items-start gap-3 rounded-lg border px-4 py-3 text-sm;
   }
   .alert-info {
-    @apply border-gray-200 bg-white text-gray-800;
+    @apply border-gray-200 bg-white text-gray-800 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200;
   }
   .alert-success {
-    @apply border-green-200 bg-green-50 text-green-800;
+    @apply border-green-200 bg-green-50 text-green-800 dark:border-green-500/30 dark:bg-green-500/10 dark:text-green-300;
   }
   .alert-error {
-    @apply border-red-200 bg-red-50 text-red-800;
+    @apply border-red-200 bg-red-50 text-red-800 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300;
   }
   .alert-warning {
-    @apply border-amber-200 bg-amber-50 text-amber-900;
+    @apply border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200;
   }
 
   /* Forms (Django forms and allauth's `fields` element) */
@@ -114,7 +124,7 @@
     @apply space-y-1.5;
   }
   .field > label {
-    @apply block text-sm font-medium text-gray-900;
+    @apply block text-sm font-medium text-gray-900 dark:text-gray-100;
   }
   .field input:not([type="checkbox"], [type="radio"], [type="hidden"], [type="submit"]),
   .field select,
@@ -122,10 +132,10 @@
     @apply input;
   }
   .field .checkbox {
-    @apply flex items-center gap-2 text-sm text-gray-700;
+    @apply flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300;
   }
   .field .checkbox input {
-    @apply size-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600;
+    @apply size-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600 dark:border-gray-700 dark:text-indigo-400;
   }
   input[type="checkbox"],
   input[type="radio"] {
@@ -133,7 +143,7 @@
   }
   .helptext,
   .allauth .helptext {
-    @apply text-xs text-gray-500;
+    @apply text-xs text-gray-500 dark:text-gray-400;
   }
   .helptext ul,
   .allauth .helptext ul {
@@ -143,42 +153,42 @@
     @apply link;
   }
   .errorlist {
-    @apply space-y-1 text-sm text-red-600;
+    @apply space-y-1 text-sm text-red-600 dark:text-red-400;
   }
   .form-error .errorlist {
-    @apply rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-800;
+    @apply rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-800 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300;
   }
 
   /* Settings */
   .settings-nav-item {
-    @apply flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:bg-white hover:text-gray-900;
+    @apply flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:bg-white hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-900 dark:hover:text-gray-100;
   }
   .settings-nav-item svg {
-    @apply size-5 text-gray-400;
+    @apply size-5 text-gray-400 dark:text-gray-500;
   }
   .settings-nav-item-active {
-    @apply bg-white text-indigo-700 shadow-xs ring-1 ring-gray-200;
+    @apply bg-white text-indigo-700 shadow-xs ring-1 ring-gray-200 dark:bg-gray-900 dark:text-indigo-400 dark:ring-gray-700;
   }
   .settings-nav-item-active svg {
-    @apply text-indigo-600;
+    @apply text-indigo-600 dark:text-indigo-400;
   }
 
   /* Tables */
   .data-table,
   .allauth table {
-    @apply min-w-full divide-y divide-gray-200 text-sm;
+    @apply min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-800;
   }
   .data-table th,
   .allauth th {
-    @apply px-4 py-3 text-left text-xs font-semibold tracking-wide text-gray-500 uppercase;
+    @apply px-4 py-3 text-left text-xs font-semibold tracking-wide text-gray-500 uppercase dark:text-gray-400;
   }
   .data-table td,
   .allauth td {
-    @apply px-4 py-3 align-middle text-gray-700;
+    @apply px-4 py-3 align-middle text-gray-700 dark:text-gray-300;
   }
   .data-table tbody,
   .allauth tbody {
-    @apply divide-y divide-gray-100;
+    @apply divide-y divide-gray-100 dark:divide-gray-800;
   }
 }
 
@@ -186,16 +196,16 @@
    these rules style the remaining plain tags inside the .allauth wrapper. */
 @layer components {
   .allauth h1 {
-    @apply text-xl font-semibold tracking-tight text-gray-900;
+    @apply text-xl font-semibold tracking-tight text-gray-900 dark:text-gray-100;
   }
   .allauth h1 + p {
     @apply mt-2;
   }
   .allauth h2 {
-    @apply text-base font-semibold text-gray-900;
+    @apply text-base font-semibold text-gray-900 dark:text-gray-100;
   }
   .allauth p {
-    @apply text-sm text-gray-600;
+    @apply text-sm text-gray-600 dark:text-gray-400;
   }
   .allauth > * + * {
     @apply mt-6;
@@ -207,10 +217,10 @@
     @apply link;
   }
   .allauth hr {
-    @apply border-gray-200;
+    @apply border-gray-200 dark:border-gray-800;
   }
   .allauth code {
-    @apply rounded bg-gray-100 px-1.5 py-0.5 text-xs;
+    @apply rounded bg-gray-100 px-1.5 py-0.5 text-xs dark:bg-gray-800;
   }
   .allauth > ul:not([class]) {
     @apply space-y-2 text-sm;

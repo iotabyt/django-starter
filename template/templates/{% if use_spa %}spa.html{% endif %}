@@ -1,9 +1,10 @@
-{% load django_vite %}<!doctype html>
+{% load static django_vite %}<!doctype html>
 <html lang="en-GB">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ PROJECT_NAME }}</title>
+    <script src="{% static 'js/theme.js' %}"></script>
     {% vite_hmr_client %}
     {% vite_react_refresh %}
     {% vite_asset "src/main.tsx" %}

@@ -4,17 +4,18 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}{{ PROJECT_NAME }}{% endblock %}</title>
+    <script src="{% static 'js/theme.js' %}"></script>
     {% tailwind_css %}
     {% htmx_script %}
     <script src="{% static 'js/ui.js' %}" defer></script>
     {% block extra_head %}{% endblock %}
   </head>
-  <body class="flex min-h-full flex-col bg-gray-50 text-gray-900 antialiased" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+  <body class="flex min-h-full flex-col bg-gray-50 text-gray-900 antialiased dark:bg-gray-950 dark:text-gray-100" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
     {# These resolve only when the module is installed; `as` makes a missing URL a no-op. #}
     {% url 'core:spa' path='' as spa_url %}
     {% url 'orgs:list' as orgs_url %}
 
-    <header class="sticky top-0 z-30 border-b border-gray-200 bg-white/90 backdrop-blur">
+    <header class="sticky top-0 z-30 border-b border-gray-200 bg-white/90 backdrop-blur dark:border-gray-800 dark:bg-gray-900/80">
       <nav class="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6" aria-label="Main">
         <div class="flex items-center gap-8">
           <a href="{% url 'core:home' %}" class="flex items-center gap-2.5 font-semibold tracking-tight">
@@ -37,18 +38,22 @@
         </div>
 
         <div class="flex items-center gap-2">
+          <button type="button" data-theme-toggle class="nav-link p-2" aria-label="Toggle dark mode" title="Toggle dark mode">
+            {% icon "moon" "size-5 dark:hidden" %}
+            {% icon "sun" "hidden size-5 dark:block" %}
+          </button>
           {% if user.is_authenticated %}
             <details class="dropdown">
               <summary aria-label="Account menu">
                 <span class="avatar">{{ user|initials }}</span>
-                {% icon "chevron-down" "size-4 text-gray-500" %}
+                {% icon "chevron-down" "size-4 text-gray-500 dark:text-gray-400" %}
               </summary>
               <div class="dropdown-menu">
-                <div class="flex items-center gap-3 border-b border-gray-100 px-4 py-3">
+                <div class="flex items-center gap-3 border-b border-gray-100 px-4 py-3 dark:border-gray-800">
                   <span class="avatar">{{ user|initials }}</span>
                   <div class="min-w-0">
-                    <p class="truncate text-sm font-semibold text-gray-900">{{ user.name|default:"Your account" }}</p>
-                    <p class="truncate text-sm text-gray-500">{{ user.email }}</p>
+                    <p class="truncate text-sm font-semibold text-gray-900 dark:text-gray-100">{{ user.name|default:"Your account" }}</p>
+                    <p class="truncate text-sm text-gray-500 dark:text-gray-400">{{ user.email }}</p>
                   </div>
                 </div>
                 <div class="py-1">
@@ -65,7 +70,7 @@
                     <a href="{% url 'admin:index' %}" class="dropdown-item">{% icon "lock" %}Admin</a>
                   {% endif %}
                 </div>
-                <form method="post" action="{% url 'account_logout' %}" class="border-t border-gray-100 py-1">
+                <form method="post" action="{% url 'account_logout' %}" class="border-t border-gray-100 py-1 dark:border-gray-800">
                   {% csrf_token %}
                   <button type="submit" class="dropdown-item">{% icon "sign-out" %}Sign out</button>
                 </form>
@@ -96,8 +101,8 @@
       </main>
     {% endblock %}
 
-    <footer class="border-t border-gray-200 bg-white">
-      <div class="mx-auto max-w-6xl px-4 py-6 text-sm text-gray-500 sm:px-6">&copy; {% now "Y" %} {{ PROJECT_NAME }}</div>
+    <footer class="border-t border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+      <div class="mx-auto max-w-6xl px-4 py-6 text-sm text-gray-500 sm:px-6 dark:text-gray-400">&copy; {% now "Y" %} {{ PROJECT_NAME }}</div>
     </footer>
 
     {% block extra_body %}{% endblock %}

@@ -7,38 +7,38 @@
 
   {% if user.is_authenticated %}
     <section>
-      <p class="text-sm font-medium text-indigo-600">Welcome back</p>
+      <p class="text-sm font-medium text-indigo-600 dark:text-indigo-400">Welcome back</p>
       <h1 class="mt-1 text-3xl font-bold tracking-tight">{{ user.name|default:user.email }}</h1>
-      <p class="mt-2 text-gray-600">Here's where to go next. Edit <code class="rounded bg-gray-100 px-1.5 py-0.5 text-sm">templates/core/home.html</code> to make this page yours.</p>
+      <p class="mt-2 text-gray-600 dark:text-gray-400">Here's where to go next. Edit <code class="rounded bg-gray-100 px-1.5 py-0.5 text-sm dark:bg-gray-800">templates/core/home.html</code> to make this page yours.</p>
     </section>
 
     <section class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {% if spa_url or orgs_url %}
-        <a href="{% firstof spa_url orgs_url %}" class="card group p-6 transition hover:border-indigo-300 hover:shadow-md">
-          <span class="inline-flex size-10 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">{% icon "squares" %}</span>
+        <a href="{% firstof spa_url orgs_url %}" class="card group p-6 transition hover:border-indigo-300 hover:shadow-md dark:hover:border-indigo-500/50">
+          <span class="inline-flex size-10 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">{% icon "squares" %}</span>
           <h2 class="mt-4 font-semibold">{% if spa_url %}Dashboard{% else %}Organizations{% endif %}</h2>
-          <p class="mt-1 text-sm text-gray-600">Manage your organizations, members and invites.</p>
-          <span class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-indigo-600">Open {% icon "arrow-right" "size-4 transition group-hover:translate-x-0.5" %}</span>
+          <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">Manage your organizations, members and invites.</p>
+          <span class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-indigo-600 dark:text-indigo-400">Open {% icon "arrow-right" "size-4 transition group-hover:translate-x-0.5" %}</span>
         </a>
       {% endif %}
-      <a href="{% url 'users:settings' %}" class="card group p-6 transition hover:border-indigo-300 hover:shadow-md">
-        <span class="inline-flex size-10 items-center justify-center rounded-lg bg-violet-50 text-violet-600">{% icon "settings" %}</span>
+      <a href="{% url 'users:settings' %}" class="card group p-6 transition hover:border-indigo-300 hover:shadow-md dark:hover:border-indigo-500/50">
+        <span class="inline-flex size-10 items-center justify-center rounded-lg bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-400">{% icon "settings" %}</span>
         <h2 class="mt-4 font-semibold">Settings</h2>
-        <p class="mt-1 text-sm text-gray-600">Your profile, email addresses and password.</p>
-        <span class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-indigo-600">Open {% icon "arrow-right" "size-4 transition group-hover:translate-x-0.5" %}</span>
+        <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">Your profile, email addresses and password.</p>
+        <span class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-indigo-600 dark:text-indigo-400">Open {% icon "arrow-right" "size-4 transition group-hover:translate-x-0.5" %}</span>
       </a>
-      <a href="{% url 'mfa_index' %}" class="card group p-6 transition hover:border-indigo-300 hover:shadow-md">
-        <span class="inline-flex size-10 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">{% icon "shield-check" %}</span>
+      <a href="{% url 'mfa_index' %}" class="card group p-6 transition hover:border-indigo-300 hover:shadow-md dark:hover:border-indigo-500/50">
+        <span class="inline-flex size-10 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">{% icon "shield-check" %}</span>
         <h2 class="mt-4 font-semibold">Security</h2>
-        <p class="mt-1 text-sm text-gray-600">Protect your account with an authenticator app and recovery codes.</p>
-        <span class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-indigo-600">Open {% icon "arrow-right" "size-4 transition group-hover:translate-x-0.5" %}</span>
+        <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">Protect your account with an authenticator app and recovery codes.</p>
+        <span class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-indigo-600 dark:text-indigo-400">Open {% icon "arrow-right" "size-4 transition group-hover:translate-x-0.5" %}</span>
       </a>
       {% if user.is_staff %}
-        <a href="{% url 'admin:index' %}" class="card group p-6 transition hover:border-indigo-300 hover:shadow-md">
-          <span class="inline-flex size-10 items-center justify-center rounded-lg bg-amber-50 text-amber-600">{% icon "lock" %}</span>
+        <a href="{% url 'admin:index' %}" class="card group p-6 transition hover:border-indigo-300 hover:shadow-md dark:hover:border-indigo-500/50">
+          <span class="inline-flex size-10 items-center justify-center rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400">{% icon "lock" %}</span>
           <h2 class="mt-4 font-semibold">Admin</h2>
-          <p class="mt-1 text-sm text-gray-600">Users, organizations and background jobs.</p>
-          <span class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-indigo-600">Open {% icon "arrow-right" "size-4 transition group-hover:translate-x-0.5" %}</span>
+          <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">Users, organizations and background jobs.</p>
+          <span class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-indigo-600 dark:text-indigo-400">Open {% icon "arrow-right" "size-4 transition group-hover:translate-x-0.5" %}</span>
         </a>
       {% endif %}
     </section>
@@ -46,8 +46,8 @@
     <section class="py-10 text-center sm:py-16">
       <span class="badge badge-admin">Django 6 · htmx · Tailwind</span>
       <h1 class="mx-auto mt-6 max-w-3xl text-4xl font-bold tracking-tight text-balance sm:text-5xl">{{ PROJECT_NAME }}</h1>
-      <p class="mx-auto mt-5 max-w-2xl text-lg text-gray-600 text-balance">
-        A fast, server-rendered web app. Replace this text in <code class="rounded bg-gray-100 px-1.5 py-0.5 text-base">templates/core/home.html</code> with what your product does.
+      <p class="mx-auto mt-5 max-w-2xl text-lg text-gray-600 text-balance dark:text-gray-400">
+        A fast, server-rendered web app. Replace this text in <code class="rounded bg-gray-100 px-1.5 py-0.5 text-base dark:bg-gray-800">templates/core/home.html</code> with what your product does.
       </p>
       <div class="mt-8 flex items-center justify-center gap-3">
         <a href="{% url 'account_signup' %}" class="btn-primary px-5 py-2.5">Get started</a>
@@ -57,39 +57,39 @@
 
     <section class="grid gap-4 sm:grid-cols-3">
       <div class="card p-6">
-        <span class="inline-flex size-10 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">{% icon "shield-check" %}</span>
+        <span class="inline-flex size-10 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">{% icon "shield-check" %}</span>
         <h2 class="mt-4 font-semibold">Secure sign-in</h2>
-        <p class="mt-1 text-sm text-gray-600">Email and Google sign-in, verified addresses and two-factor authentication.</p>
+        <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">Email and Google sign-in, verified addresses and two-factor authentication.</p>
       </div>
       {% url 'orgs:accept_invite' token='x' as orgs_installed %}
       <div class="card p-6">
-        <span class="inline-flex size-10 items-center justify-center rounded-lg bg-violet-50 text-violet-600">{% if orgs_installed %}{% icon "users" %}{% else %}{% icon "lock" %}{% endif %}</span>
+        <span class="inline-flex size-10 items-center justify-center rounded-lg bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-400">{% if orgs_installed %}{% icon "users" %}{% else %}{% icon "lock" %}{% endif %}</span>
         {% if orgs_installed %}
           <h2 class="mt-4 font-semibold">Built for teams</h2>
-          <p class="mt-1 text-sm text-gray-600">Organizations with owners, admins and members, plus email invites.</p>
+          <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">Organizations with owners, admins and members, plus email invites.</p>
         {% else %}
           <h2 class="mt-4 font-semibold">Admin included</h2>
-          <p class="mt-1 text-sm text-gray-600">A polished admin for your team to manage users and data.</p>
+          <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">A polished admin for your team to manage users and data.</p>
         {% endif %}
       </div>
       <div class="card p-6">
-        <span class="inline-flex size-10 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">{% icon "bolt" %}</span>
+        <span class="inline-flex size-10 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">{% icon "bolt" %}</span>
         <h2 class="mt-4 font-semibold">Background jobs</h2>
-        <p class="mt-1 text-sm text-gray-600">Emails and scheduled tasks run in a worker, queued in Postgres.</p>
+        <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">Emails and scheduled tasks run in a worker, queued in Postgres.</p>
       </div>
     </section>
   {% endif %}
 
   <section class="card mt-8 p-6">
     <h2 class="font-semibold">htmx + template partials</h2>
-    <p class="mt-1 text-sm text-gray-600">
-      The button fetches <code class="rounded bg-gray-100 px-1 py-0.5 text-xs">/ping/</code>, which renders only the <code class="rounded bg-gray-100 px-1 py-0.5 text-xs">pong</code> partial
-      defined in this template with <code class="rounded bg-gray-100 px-1 py-0.5 text-xs">{% templatetag openblock %} partialdef pong inline {% templatetag closeblock %}</code>.
+    <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+      The button fetches <code class="rounded bg-gray-100 px-1 py-0.5 text-xs dark:bg-gray-800">/ping/</code>, which renders only the <code class="rounded bg-gray-100 px-1 py-0.5 text-xs dark:bg-gray-800">pong</code> partial
+      defined in this template with <code class="rounded bg-gray-100 px-1 py-0.5 text-xs dark:bg-gray-800">{% templatetag openblock %} partialdef pong inline {% templatetag closeblock %}</code>.
     </p>
     <div class="mt-4 flex items-center gap-4">
       <button class="btn-secondary" hx-get="{% url 'core:ping' %}" hx-target="#pong" hx-swap="outerHTML">Ping</button>
       {% partialdef pong inline %}
-        <span id="pong" class="text-sm text-gray-700">
+        <span id="pong" class="text-sm text-gray-700 dark:text-gray-300">
           {% if pong_at %}Pong at {{ pong_at|time:"H:i:s" }}{% else %}No ping yet.{% endif %}
         </span>
       {% endpartialdef %}

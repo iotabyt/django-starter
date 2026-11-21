@@ -4,13 +4,13 @@
 {% block title %}{{ org.name }} · {{ PROJECT_NAME }}{% endblock %}
 
 {% block content %}
-  <a href="{% url 'orgs:list' %}" class="text-sm text-gray-500 hover:text-gray-900">&larr; Organizations</a>
+  <a href="{% url 'orgs:list' %}" class="text-sm text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100">&larr; Organizations</a>
   <div class="mt-3 flex flex-wrap items-center justify-between gap-4">
     <div class="flex items-center gap-4">
       <span class="logo-mark logo-mark-lg">{{ org.name|slice:":1"|upper }}</span>
       <div>
         <h1 class="text-2xl font-bold tracking-tight">{{ org.name }}</h1>
-        <p class="text-sm text-gray-500">You're {{ me.get_role_display|lower }} · {{ members|length }} member{{ members|length|pluralize }}</p>
+        <p class="text-sm text-gray-500 dark:text-gray-400">You're {{ me.get_role_display|lower }} · {{ members|length }} member{{ members|length|pluralize }}</p>
       </div>
     </div>
     {% if me.role != "owner" %}
@@ -24,12 +24,12 @@
   <div class="mt-8 grid gap-6 lg:grid-cols-[1fr_20rem]">
     <div class="space-y-6">
       <section class="card overflow-hidden">
-        <div class="border-b border-gray-200 px-5 py-4">
+        <div class="border-b border-gray-200 px-5 py-4 dark:border-gray-800">
           <h2 class="font-semibold">Members</h2>
         </div>
         <div class="overflow-x-auto">
           <table class="data-table">
-            <thead class="bg-gray-50">
+            <thead class="bg-gray-50 dark:bg-gray-950">
               <tr><th>Member</th><th>Role</th><th>Joined</th><th class="sr-only">Actions</th></tr>
             </thead>
             <tbody>
@@ -39,8 +39,8 @@
                     <div class="flex items-center gap-3">
                       <span class="avatar avatar-sm">{{ m.user|initials }}</span>
                       <div class="min-w-0">
-                        <p class="truncate font-medium text-gray-900">{{ m.user.name|default:m.user.email }}{% if m.pk == me.pk %} <span class="text-gray-400">(you)</span>{% endif %}</p>
-                        {% if m.user.name %}<p class="truncate text-gray-500">{{ m.user.email }}</p>{% endif %}
+                        <p class="truncate font-medium text-gray-900 dark:text-gray-100">{{ m.user.name|default:m.user.email }}{% if m.pk == me.pk %} <span class="text-gray-400 dark:text-gray-500">(you)</span>{% endif %}</p>
+                        {% if m.user.name %}<p class="truncate text-gray-500 dark:text-gray-400">{{ m.user.email }}</p>{% endif %}
                       </div>
                     </div>
                   </td>
@@ -61,12 +61,12 @@
                       <span class="badge {% if m.role == 'owner' %}badge-owner{% elif m.role == 'admin' %}badge-admin{% endif %}">{{ m.get_role_display }}</span>
                     {% endif %}
                   </td>
-                  <td class="whitespace-nowrap text-gray-500">{{ m.created_at|date:"j M Y" }}</td>
+                  <td class="whitespace-nowrap text-gray-500 dark:text-gray-400">{{ m.created_at|date:"j M Y" }}</td>
                   <td class="text-right">
                     {% if row.editable %}
                       <form method="post" action="{% url 'orgs:member_remove' slug=org.slug member_id=m.pk %}" data-confirm="Remove {{ m.user.email }} from {{ org.name }}?">
                         {% csrf_token %}
-                        <button type="submit" class="text-sm font-medium text-red-600 hover:text-red-500">Remove</button>
+                        <button type="submit" class="text-sm font-medium text-red-600 hover:text-red-500 dark:text-red-400 dark:hover:text-red-300">Remove</button>
                       </form>
                     {% endif %}
                   </td>
@@ -78,26 +78,26 @@
       </section>
 
       <section class="card overflow-hidden">
-        <div class="border-b border-gray-200 px-5 py-4">
+        <div class="border-b border-gray-200 px-5 py-4 dark:border-gray-800">
           <h2 class="font-semibold">Pending invites</h2>
         </div>
         {% if invites %}
           <div class="overflow-x-auto">
             <table class="data-table">
-              <thead class="bg-gray-50">
+              <thead class="bg-gray-50 dark:bg-gray-950">
                 <tr><th>Email</th><th>Role</th><th>Expires</th><th class="sr-only">Actions</th></tr>
               </thead>
               <tbody>
                 {% for i in invites %}
                   <tr>
-                    <td class="font-medium text-gray-900">{{ i.email }}</td>
+                    <td class="font-medium text-gray-900 dark:text-gray-100">{{ i.email }}</td>
                     <td><span class="badge {% if i.role == 'admin' %}badge-admin{% endif %}">{{ i.get_role_display }}</span></td>
-                    <td class="whitespace-nowrap text-gray-500">{% if i.is_expired %}<span class="badge badge-warning">Expired</span>{% else %}{{ i.expires_at|date:"j M Y" }}{% endif %}</td>
+                    <td class="whitespace-nowrap text-gray-500 dark:text-gray-400">{% if i.is_expired %}<span class="badge badge-warning">Expired</span>{% else %}{{ i.expires_at|date:"j M Y" }}{% endif %}</td>
                     <td class="text-right">
                       {% if me.can_manage %}
                         <form method="post" action="{% url 'orgs:revoke' slug=org.slug invite_id=i.pk %}">
                           {% csrf_token %}
-                          <button type="submit" class="text-sm font-medium text-gray-600 hover:text-gray-900">Revoke</button>
+                          <button type="submit" class="text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100">Revoke</button>
                         </form>
                       {% endif %}
                     </td>
@@ -107,7 +107,7 @@
             </table>
           </div>
         {% else %}
-          <p class="px-5 py-6 text-sm text-gray-500">No pending invites.</p>
+          <p class="px-5 py-6 text-sm text-gray-500 dark:text-gray-400">No pending invites.</p>
         {% endif %}
       </section>
     </div>
@@ -115,7 +115,7 @@
     {% if me.can_manage %}
       <aside class="card h-fit p-5">
         <h2 class="font-semibold">Invite someone</h2>
-        <p class="mt-1 text-sm text-gray-600">They'll get an email with a link to join.</p>
+        <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">They'll get an email with a link to join.</p>
         <form method="post" action="{% url 'orgs:invite' slug=org.slug %}" class="mt-4 space-y-4">
           {% csrf_token %}
           <div class="field">

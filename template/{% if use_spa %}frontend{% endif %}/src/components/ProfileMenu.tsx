@@ -36,18 +36,18 @@ export function ProfileMenu({ me }: { me: Me }) {
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
         aria-label="Account menu"
-        className="flex cursor-pointer items-center gap-1.5 rounded-full p-0.5 pr-1.5 hover:bg-gray-100"
+        className="flex cursor-pointer items-center gap-1.5 rounded-full p-0.5 pr-1.5 hover:bg-gray-100 dark:hover:bg-gray-800"
       >
         <Avatar name={me.name} email={me.email} />
-        <Icon name="chevronDown" className="size-4 text-gray-500" />
+        <Icon name="chevronDown" className="size-4 text-gray-500 dark:text-gray-400" />
       </button>
       {open && (
-        <div className="absolute right-0 z-40 mt-2 w-64 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg ring-1 ring-black/5">
-          <div className="flex items-center gap-3 border-b border-gray-100 px-4 py-3">
+        <div className="absolute right-0 z-40 mt-2 w-64 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg ring-1 ring-black/5 dark:border-gray-800 dark:bg-gray-900">
+          <div className="flex items-center gap-3 border-b border-gray-100 px-4 py-3 dark:border-gray-800">
             <Avatar name={me.name} email={me.email} />
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-gray-900">{me.name || "Your account"}</p>
-              <p className="truncate text-sm text-gray-500">{me.email}</p>
+              <p className="truncate text-sm font-semibold text-gray-900 dark:text-gray-100">{me.name || "Your account"}</p>
+              <p className="truncate text-sm text-gray-500 dark:text-gray-400">{me.email}</p>
             </div>
           </div>
           <div className="py-1">
@@ -55,29 +55,29 @@ export function ProfileMenu({ me }: { me: Me }) {
               <a
                 key={link.href}
                 href={link.href}
-                className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-100"
               >
-                <Icon name={link.icon} className="size-4 text-gray-400" />
+                <Icon name={link.icon} className="size-4 text-gray-400 dark:text-gray-500" />
                 {link.label}
               </a>
             ))}
             {me.admin_url && (
               <a
                 href={me.admin_url}
-                className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-100"
               >
-                <Icon name="lock" className="size-4 text-gray-400" />
+                <Icon name="lock" className="size-4 text-gray-400 dark:text-gray-500" />
                 Admin
               </a>
             )}
           </div>
-          <form method="post" action="/accounts/logout/" className="border-t border-gray-100 py-1">
+          <form method="post" action="/accounts/logout/" className="border-t border-gray-100 py-1 dark:border-gray-800">
             <input type="hidden" name="csrfmiddlewaretoken" value={getCookie("csrftoken") ?? ""} />
             <button
               type="submit"
-              className="flex w-full cursor-pointer items-center gap-3 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+              className="flex w-full cursor-pointer items-center gap-3 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-100"
             >
-              <Icon name="signOut" className="size-4 text-gray-400" />
+              <Icon name="signOut" className="size-4 text-gray-400 dark:text-gray-500" />
               Sign out
             </button>
           </form>

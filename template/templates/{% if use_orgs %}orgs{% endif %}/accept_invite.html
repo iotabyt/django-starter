@@ -6,23 +6,23 @@
   <main class="flex flex-1 items-start justify-center px-4 py-12 sm:py-16">
     <div class="card w-full max-w-md p-8 text-center shadow-sm">
       <span class="logo-mark logo-mark-lg">{{ invite.organization.name|slice:":1"|upper }}</span>
-      <p class="mt-6 text-sm font-medium text-indigo-600">You're invited</p>
+      <p class="mt-6 text-sm font-medium text-indigo-600 dark:text-indigo-400">You're invited</p>
       <h1 class="mt-1 text-2xl font-bold tracking-tight">Join {{ invite.organization.name }}</h1>
 
       {% if error %}
         <div class="alert alert-error mt-6 text-left">{{ error }}</div>
       {% elif invite.is_pending %}
-        <p class="mt-3 text-sm text-gray-600">
-          {% if invite.invited_by %}<strong class="font-medium text-gray-900">{{ invite.invited_by.name|default:invite.invited_by.email }}</strong> invited you{% else %}You've been invited{% endif %}
+        <p class="mt-3 text-sm text-gray-600 dark:text-gray-400">
+          {% if invite.invited_by %}<strong class="font-medium text-gray-900 dark:text-gray-100">{{ invite.invited_by.name|default:invite.invited_by.email }}</strong> invited you{% else %}You've been invited{% endif %}
           to join as <span class="badge {% if invite.role == 'admin' %}badge-admin{% endif %}">{{ invite.get_role_display }}</span>
         </p>
         <form method="post" class="mt-8">
           {% csrf_token %}
           <button type="submit" class="btn-primary w-full py-2.5">Accept invite</button>
         </form>
-        <p class="mt-4 text-xs text-gray-500">Signed in as {{ user.email }}</p>
+        <p class="mt-4 text-xs text-gray-500 dark:text-gray-400">Signed in as {{ user.email }}</p>
       {% else %}
-        <p class="mt-4 text-sm text-gray-600">This invite is no longer valid. Ask for a new one.</p>
+        <p class="mt-4 text-sm text-gray-600 dark:text-gray-400">This invite is no longer valid. Ask for a new one.</p>
       {% endif %}
     </div>
   </main>

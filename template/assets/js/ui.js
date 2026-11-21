@@ -22,3 +22,8 @@ document.addEventListener("submit", (event) => {
   const message = event.target.dataset?.confirm;
   if (message && !window.confirm(message)) event.preventDefault();
 });
+
+// <button data-theme-toggle> switches between light and dark (see theme.js).
+document.addEventListener("click", (event) => {
+  if (event.target.closest("[data-theme-toggle]")) window.toggleTheme?.();
+});
