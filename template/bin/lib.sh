@@ -123,7 +123,8 @@ ensure_postgres() {
     ok "Started Postgres in Docker on port $_port"
   else
     fail "Couldn't start Postgres in Docker on port $_port"
-    tail -n 15 "$_log" | sed 's/^/    /' >&2
+    # Show Docker's error lines, not its progress output (or the tail if there are none).
+    { grep -i 'error' "$_log" || tail -n 15 "$_log"; } | sed 's/^/    /' >&2
     rm -f "$_log"
     hint "If port $_port is taken, change the port in DATABASE_URL in .env and re-run."
     exit 1

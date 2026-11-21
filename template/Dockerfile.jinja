@@ -51,14 +51,16 @@ COPY --from=frontend /frontend/dist /app/frontend/dist
 {% endif %}
 
 # Build CSS and collect static files. The env values only satisfy settings; nothing
-# connects to a database here. The Tailwind binary and the native modules it unpacks
-# into /tmp are removed afterwards.
+# connects to a database here. The Tailwind CLI is cached by BuildKit at its default path
+# (~/.cache/django-tailwind-cli), so it downloads once per builder and never lands in the
+# image; the native modules it unpacks into /tmp are removed.
 {% if use_spa %}
 # `--ignore ninja` skips Ninja's Swagger UI assets (~20 MB): /api/docs is off in production.
 {% endif %}
-RUN SECRET_KEY=build-only-not-secret DATABASE_URL=postgres://build/build \
+RUN --mount=type=cache,target=/root/.cache/django-tailwind-cli \
+    SECRET_KEY=build-only-not-secret DATABASE_URL=postgres://build/build \
     sh -c "python manage.py tailwind build && python manage.py collectstatic --noinput{{ ' --ignore ninja' if use_spa else '' }}" \
-    && rm -rf .django_tailwind_cli /tmp/.bun-*
+    && rm -rf /tmp/.bun-*
 
 RUN mkdir -p /app/media && chown app:app /app/media
 USER app

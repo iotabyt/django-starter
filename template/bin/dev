@@ -12,4 +12,6 @@ if [ ! -f .env ] || [ ! -d .venv ]; then
 fi
 
 ensure_postgres
+# Without this, Python buffers the output of web/worker/css until much later under honcho.
+export PYTHONUNBUFFERED=1
 exec uv run honcho -f Procfile.dev start

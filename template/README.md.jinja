@@ -37,7 +37,9 @@ uv run python manage.py createsuperuser
 `bin/setup` is safe to re-run whenever things change (new dependencies, new migrations).
 It uses the Postgres in `DATABASE_URL` (in `.env`) if one is already listening there, so a
 native install needs no Docker; otherwise it starts the Docker Compose one on that URL's port.
-If port 5432 is taken, change the port in `DATABASE_URL` and run `bin/setup` again.
+If port 5432 is taken, change the port in `DATABASE_URL` and run `bin/setup` again. The
+Tailwind CLI is downloaded once per machine to `~/.cache/django-tailwind-cli`
+(`TAILWIND_CLI_PATH` in `.env` changes that).
 
 `bin/dev` runs Django, the Tailwind watcher, a Procrastinate worker{{ ' and the Vite dev server' if use_spa else '' }} with honcho
 (see `Procfile.dev`). Emails print to the terminal in development, including the verification

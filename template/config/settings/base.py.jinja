@@ -175,6 +175,12 @@ STORAGES: dict[str, dict[str, Any]] = {
 TAILWIND_CLI_SRC_CSS = "styles/source.css"
 TAILWIND_CLI_DIST_CSS = "css/tailwind.css"
 TAILWIND_CLI_VERSION = "4.3.5"
+# The CLI binary (~100 MB) is shared per machine instead of downloaded into every project; its
+# file name includes the version and platform, so projects pinning other versions coexist.
+# Expand ~ here: django-tailwind-cli would treat "~/..." as relative to BASE_DIR.
+TAILWIND_CLI_PATH = Path(
+    str(config("TAILWIND_CLI_PATH", default="~/.cache/django-tailwind-cli"))
+).expanduser()
 {% if use_spa %}
 
 DJANGO_VITE = {
