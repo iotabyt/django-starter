@@ -1,0 +1,25 @@
+{% extends "settings/layout.html" %}
+
+{% block title %}Profile · {{ PROJECT_NAME }}{% endblock %}
+
+{% block content %}
+  <h1>Profile</h1>
+  <p>This is how you appear to other people in your organizations.</p>
+  <form method="post" class="max-w-lg">
+    {% csrf_token %}
+    <div class="field">
+      <label>Email</label>
+      <input type="email" value="{{ user.email }}" disabled>
+      <p class="helptext">Change it under <a href="{% url 'account_email' %}">Email addresses</a>.</p>
+    </div>
+    {% for field in form %}
+      <div class="field">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}<p class="helptext">{{ field.help_text }}</p>{% endif %}
+        {{ field.errors }}
+      </div>
+    {% endfor %}
+    <div><button type="submit" class="btn-primary">Save changes</button></div>
+  </form>
+{% endblock %}

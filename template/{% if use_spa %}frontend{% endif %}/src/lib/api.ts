@@ -13,7 +13,7 @@ export class ApiError extends Error {
   }
 }
 
-function getCookie(name: string): string | null {
+export function getCookie(name: string): string | null {
   const row = document.cookie.split("; ").find((part) => part.startsWith(`${name}=`));
   return row ? decodeURIComponent(row.slice(name.length + 1)) : null;
 }
@@ -58,4 +58,16 @@ export function get<T>(path: string): Promise<T> {
 
 export function post<T>(path: string, body: unknown): Promise<T> {
   return api<T>(path, { method: "POST", body: JSON.stringify(body) });
+}
+
+export function patch<T>(path: string, body: unknown): Promise<T> {
+  return api<T>(path, { method: "PATCH", body: JSON.stringify(body) });
+}
+
+export function del(path: string): Promise<null> {
+  return api<null>(path, { method: "DELETE" });
+}
+
+export function errorMessage(error: unknown): string {
+  return error instanceof ApiError ? error.message : "Something went wrong. Please try again.";
 }

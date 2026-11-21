@@ -1,0 +1,177 @@
+from django.conf import settings
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+{% if not use_spa %}
+from django.http import Http404, HttpResponse
+{% else %}
+from django.http import HttpResponse
+{% endif %}
+from django.shortcuts import get_object_or_404, redirect, render
+{% if not use_spa %}
+from django.views.decorators.http import require_POST
+{% endif %}
+
+from apps.core.types import AuthenticatedHttpRequest
+
+from . import services
+{% if not use_spa %}
+from .forms import InviteForm, OrganizationForm
+from .models import Invite, Membership, Role
+{% else %}
+from .models import Invite
+{% endif %}
+
+
+@login_required
+def accept_invite(request: AuthenticatedHttpRequest, token: str) -> HttpResponse:
+    invite = get_object_or_404(
+        Invite.objects.select_related("organization", "invited_by"), token=token
+    )
+    error = None
+    if request.method == "POST":
+        try:
+            services.accept_invite(token, request.user)
+        except services.InviteError as exc:
+            error = str(exc)
+        else:
+            messages.success(request, f"You've joined {invite.organization.name}.")
+            return redirect(settings.LOGIN_REDIRECT_URL)
+
+    return render(
+        request,
+        "orgs/accept_invite.html",
+        {"invite": invite, "error": error},
+        status=400 if error else 200,
+    )
+{% if not use_spa %}
+
+
+def _membership(request: AuthenticatedHttpRequest, slug: str) -> Membership:
+    membership = services.get_membership(request.user, slug)
+    if membership is None:
+        raise Http404("Organization not found.")
+    return membership
+
+
+@login_required
+def org_list(request: AuthenticatedHttpRequest) -> HttpResponse:
+    form = OrganizationForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        org = services.create_organization(form.cleaned_data["name"].strip(), request.user)
+        messages.success(request, f"Created {org.name}.")
+        return redirect("orgs:detail", slug=org.slug)
+    memberships = (
+        Membership.objects.filter(user=request.user)
+        .select_related("organization")
+        .order_by("organization__name")
+    )
+    orgs = [
+        {
+            "membership": m,
+            "org": m.organization,
+            "member_count": m.organization.memberships.count(),
+            "pending_invites": m.organization.invites.filter(accepted_at__isnull=True).count(),
+        }
+        for m in memberships
+    ]
+    return render(request, "orgs/list.html", {"orgs": orgs, "form": form})
+
+
+@login_required
+def org_detail(request: AuthenticatedHttpRequest, slug: str) -> HttpResponse:
+    me = _membership(request, slug)
+    org = me.organization
+    members = [
+        {
+            "m": m,
+            # Owners can edit anyone else; admins can edit anyone else who isn't an owner.
+            "editable": m.pk != me.pk
+            and me.can_manage
+            and (me.role == Role.OWNER or m.role != Role.OWNER),
+        }
+        for m in org.memberships.select_related("user").order_by("created_at")
+    ]
+    return render(
+        request,
+        "orgs/detail.html",
+        {
+            "org": org,
+            "me": me,
+            "members": members,
+            "invites": org.invites.filter(accepted_at__isnull=True)
+            .select_related("invited_by")
+            .order_by("-created_at"),
+            "invite_form": InviteForm(),
+            "roles": Role.choices,
+        },
+    )
+
+
+@login_required
+@require_POST
+def invite(request: AuthenticatedHttpRequest, slug: str) -> HttpResponse:
+    me = _membership(request, slug)
+    form = InviteForm(request.POST)
+    if not me.can_manage:
+        messages.error(request, "Only owners and admins can invite people.")
+    elif not form.is_valid():
+        messages.error(request, "Enter a valid email address and role.")
+    else:
+        try:
+            created = services.invite_member(
+                me.organization, form.cleaned_data["email"], request.user, form.cleaned_data["role"]
+            )
+        except services.InviteError as exc:
+            messages.error(request, str(exc))
+        else:
+            messages.success(request, f"Invite sent to {created.email}.")
+    return redirect("orgs:detail", slug=slug)
+
+
+@login_required
+@require_POST
+def revoke(request: AuthenticatedHttpRequest, slug: str, invite_id: int) -> HttpResponse:
+    me = _membership(request, slug)
+    pending = get_object_or_404(me.organization.invites, pk=invite_id)
+    try:
+        services.revoke_invite(pending, request.user)
+    except services.MembershipError as exc:
+        messages.error(request, str(exc))
+    else:
+        messages.success(request, f"Revoked the invite for {pending.email}.")
+    return redirect("orgs:detail", slug=slug)
+
+
+@login_required
+@require_POST
+def member_role(request: AuthenticatedHttpRequest, slug: str, member_id: int) -> HttpResponse:
+    me = _membership(request, slug)
+    target = get_object_or_404(me.organization.memberships.select_related("user"), pk=member_id)
+    try:
+        services.change_role(target, request.POST.get("role", ""), request.user)
+    except services.MembershipError as exc:
+        messages.error(request, str(exc))
+    else:
+        messages.success(
+            request, f"{target.user.email} is now {target.get_role_display().lower()}."
+        )
+    return redirect("orgs:detail", slug=slug)
+
+
+@login_required
+@require_POST
+def member_remove(request: AuthenticatedHttpRequest, slug: str, member_id: int) -> HttpResponse:
+    me = _membership(request, slug)
+    target = get_object_or_404(me.organization.memberships.select_related("user"), pk=member_id)
+    leaving = target.pk == me.pk
+    try:
+        services.remove_member(target, request.user)
+    except services.MembershipError as exc:
+        messages.error(request, str(exc))
+        return redirect("orgs:detail", slug=slug)
+    if leaving:
+        messages.success(request, f"You left {me.organization.name}.")
+        return redirect("orgs:list")
+    messages.success(request, f"Removed {target.user.email}.")
+    return redirect("orgs:detail", slug=slug)
+{% endif %}

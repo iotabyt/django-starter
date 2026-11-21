@@ -1,0 +1,269 @@
+import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { type FormEvent, useState } from "react";
+import { Avatar, Icon, RoleBadge } from "../components/ui";
+import { del, errorMessage, patch, post } from "../lib/api";
+import { invitesQuery, membersQuery, orgQuery, orgsQuery } from "../lib/queries";
+import type { Invite, Member, Role } from "../lib/types";
+
+export const Route = createFileRoute("/orgs/$slug")({
+  loader: ({ context: { queryClient }, params: { slug } }) =>
+    Promise.all([
+      queryClient.ensureQueryData(orgQuery(slug)),
+      queryClient.ensureQueryData(membersQuery(slug)),
+      queryClient.ensureQueryData(invitesQuery(slug)),
+    ]),
+  component: OrgPage,
+});
+
+const ROLES: Role[] = ["owner", "admin", "member"];
+
+function formatDate(value: string) {
+  return new Date(value).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+}
+
+function OrgPage() {
+  const { slug } = Route.useParams();
+  const { data: org } = useSuspenseQuery(orgQuery(slug));
+  const { data: members } = useSuspenseQuery(membersQuery(slug));
+  const { data: invites } = useSuspenseQuery(invitesQuery(slug));
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const [error, setError] = useState<string | null>(null);
+
+  const canManage = org.role === "owner" || org.role === "admin";
+  const me = members.find((member) => member.is_me);
+  // Owners can edit anyone else; admins can edit anyone else who isn't an owner.
+  const editable = (member: Member) =>
+    !member.is_me && canManage && (org.role === "owner" || member.role !== "owner");
+
+  const refresh = () => {
+    setError(null);
+    return queryClient.invalidateQueries({ queryKey: ["orgs"] });
+  };
+  const onError = (err: unknown) => setError(errorMessage(err));
+
+  const changeRole = useMutation({
+    mutationFn: ({ id, role }: { id: number; role: Role }) => patch<Member>(`/orgs/${slug}/members/${id}`, { role }),
+    onSuccess: refresh,
+    onError,
+  });
+  const removeMember = useMutation({
+    mutationFn: (member: Member) => del(`/orgs/${slug}/members/${member.id}`),
+    onSuccess: async (_data, member) => {
+      if (member.is_me) {
+        await queryClient.invalidateQueries({ queryKey: orgsQuery.queryKey });
+        await navigate({ to: "/" });
+        return;
+      }
+      await refresh();
+    },
+    onError,
+  });
+  const revokeInvite = useMutation({
+    mutationFn: (invite: Invite) => del(`/orgs/${slug}/invites/${invite.id}`),
+    onSuccess: refresh,
+    onError,
+  });
+
+  return (
+    <div className="space-y-8">
+      <div>
+        <Link to="/" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900">
+          <Icon name="arrowLeft" className="size-4" /> Dashboard
+        </Link>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <span className="logo-mark size-12 rounded-xl text-lg">{org.name.slice(0, 1).toUpperCase()}</span>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">{org.name}</h1>
+              <p className="text-sm text-gray-500">
+                You're {org.role} · {org.member_count} member{org.member_count === 1 ? "" : "s"}
+              </p>
+            </div>
+          </div>
+          {me && org.role !== "owner" && (
+            <button
+              type="button"
+              className="btn-danger"
+              onClick={() => window.confirm(`Leave ${org.name}?`) && removeMember.mutate(me)}
+            >
+              Leave organization
+            </button>
+          )}
+        </div>
+      </div>
+
+      {error && (
+        <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          {error}
+        </div>
+      )}
+
+      <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
+        <div className="space-y-6">
+          <section className="card overflow-hidden">
+            <div className="border-b border-gray-200 px-5 py-4">
+              <h2 className="font-semibold">Members</h2>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 text-sm">
+                <thead className="bg-gray-50">
+                  <tr className="text-left text-xs font-semibold tracking-wide text-gray-500 uppercase">
+                    <th className="px-5 py-3">Member</th>
+                    <th className="px-5 py-3">Role</th>
+                    <th className="px-5 py-3">Joined</th>
+                    <th className="px-5 py-3">
+                      <span className="sr-only">Actions</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {members.map((member) => (
+                    <tr key={member.id}>
+                      <td className="px-5 py-3">
+                        <div className="flex items-center gap-3">
+                          <Avatar name={member.name} email={member.email} small />
+                          <div className="min-w-0">
+                            <p className="truncate font-medium text-gray-900">
+                              {member.name || member.email}
+                              {member.is_me && <span className="text-gray-400"> (you)</span>}
+                            </p>
+                            {member.name && <p className="truncate text-gray-500">{member.email}</p>}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3">
+                        {editable(member) ? (
+                          <select
+                            aria-label={`Role for ${member.email}`}
+                            value={member.role}
+                            onChange={(event) => changeRole.mutate({ id: member.id, role: event.target.value as Role })}
+                            className="input w-32 py-1.5"
+                          >
+                            {ROLES.filter((role) => role !== "owner" || org.role === "owner").map((role) => (
+                              <option key={role} value={role}>
+                                {role[0].toUpperCase() + role.slice(1)}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <RoleBadge role={member.role} />
+                        )}
+                      </td>
+                      <td className="px-5 py-3 whitespace-nowrap text-gray-500">{formatDate(member.joined_at)}</td>
+                      <td className="px-5 py-3 text-right">
+                        {editable(member) && (
+                          <button
+                            type="button"
+                            className="cursor-pointer text-sm font-medium text-red-600 hover:text-red-500"
+                            onClick={() =>
+                              window.confirm(`Remove ${member.email} from ${org.name}?`) && removeMember.mutate(member)
+                            }
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section className="card overflow-hidden">
+            <div className="border-b border-gray-200 px-5 py-4">
+              <h2 className="font-semibold">Pending invites</h2>
+            </div>
+            {invites.length === 0 ? (
+              <p className="px-5 py-6 text-sm text-gray-500">No pending invites.</p>
+            ) : (
+              <ul className="divide-y divide-gray-100">
+                {invites.map((invite) => (
+                  <li key={invite.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 text-sm">
+                    <div className="min-w-0">
+                      <p className="truncate font-medium text-gray-900">{invite.email}</p>
+                      <p className="text-gray-500">
+                        Expires {formatDate(invite.expires_at)}
+                        {invite.invited_by && ` · invited by ${invite.invited_by}`}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <RoleBadge role={invite.role} />
+                      {canManage && (
+                        <button
+                          type="button"
+                          className="cursor-pointer font-medium text-gray-600 hover:text-gray-900"
+                          onClick={() => revokeInvite.mutate(invite)}
+                        >
+                          Revoke
+                        </button>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </div>
+
+        {canManage && <InviteForm slug={slug} onDone={refresh} />}
+      </div>
+    </div>
+  );
+}
+
+function InviteForm({ slug, onDone }: { slug: string; onDone: () => Promise<void> }) {
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState<Role>("member");
+  const invite = useMutation({
+    mutationFn: () => post<Invite>(`/orgs/${slug}/invites`, { email, role }),
+    onSuccess: async () => {
+      setEmail("");
+      await onDone();
+    },
+  });
+
+  function onSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    invite.mutate();
+  }
+
+  return (
+    <aside className="card h-fit p-5">
+      <h2 className="font-semibold">Invite someone</h2>
+      <p className="mt-1 text-sm text-gray-600">They'll get an email with a link to join.</p>
+      <form onSubmit={onSubmit} className="mt-4 space-y-4">
+        <div className="space-y-1.5">
+          <label htmlFor="invite-email" className="label">
+            Email
+          </label>
+          <input
+            id="invite-email"
+            type="email"
+            required
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="name@company.com"
+            className="input"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <label htmlFor="invite-role" className="label">
+            Role
+          </label>
+          <select id="invite-role" value={role} onChange={(event) => setRole(event.target.value as Role)} className="input">
+            <option value="member">Member</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+        <button type="submit" disabled={invite.isPending} className="btn-primary w-full">
+          Send invite
+        </button>
+        {invite.isSuccess && !invite.isPending && <p className="text-sm text-green-700">Invite sent.</p>}
+        {invite.error && <p className="text-sm text-red-600">{errorMessage(invite.error)}</p>}
+      </form>
+    </aside>
+  );
+}

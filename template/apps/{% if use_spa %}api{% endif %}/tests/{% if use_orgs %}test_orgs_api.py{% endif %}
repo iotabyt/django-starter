@@ -23,9 +23,11 @@ def test_create_and_list_orgs(client, user):
 
     response = client.get("/api/orgs/")
     assert response.status_code == 200
-    assert response.json() == [
-        {"id": response.json()[0]["id"], "name": "Acme", "slug": "acme", "role": "owner"}
-    ]
+    [org] = response.json()
+    assert org["name"] == "Acme"
+    assert org["role"] == "owner"
+    assert org["member_count"] == 1
+    assert org["pending_invite_count"] == 0
 
 
 def test_owner_can_invite(client, user):
@@ -73,3 +75,58 @@ def test_non_member_gets_404(client, user):
         f"/api/orgs/{org.slug}/invites", {"email": "x@example.com"}, content_type="application/json"
     )
     assert response.status_code == 404
+
+
+def test_members_roles_and_invites(client, user):
+    org = create_organization("Acme", user)
+    other = User.objects.create_user(email="other@example.com", password="pw-123456")
+    theirs = Membership.objects.create(organization=org, user=other, role=Role.MEMBER)
+    client.force_login(user)
+    base = f"/api/orgs/{org.slug}"
+
+    assert client.get(base).json()["member_count"] == 2
+    members = client.get(f"{base}/members").json()
+    assert [(m["email"], m["role"], m["is_me"]) for m in members] == [
+        ("user@example.com", "owner", True),
+        ("other@example.com", "member", False),
+    ]
+
+    response = client.patch(
+        f"{base}/members/{theirs.pk}", {"role": "admin"}, content_type="application/json"
+    )
+    assert response.status_code == 200
+    assert response.json()["role"] == "admin"
+
+    # The last owner can't demote themselves.
+    me = Membership.objects.get(organization=org, user=user)
+    response = client.patch(
+        f"{base}/members/{me.pk}", {"role": "member"}, content_type="application/json"
+    )
+    assert response.status_code == 400
+
+    client.post(f"{base}/invites", {"email": "new@example.com"}, content_type="application/json")
+    [invite] = client.get(f"{base}/invites").json()
+    assert invite["invited_by"] == "user@example.com"
+    assert client.delete(f"{base}/invites/{invite['id']}").status_code == 204
+    assert client.get(f"{base}/invites").json() == []
+
+    assert client.delete(f"{base}/members/{theirs.pk}").status_code == 204
+    assert client.get(base).json()["member_count"] == 1
+
+
+def test_member_gets_403_for_management_actions(client, user):
+    owner = User.objects.create_user(email="owner@example.com", password="pw-123456")
+    org = create_organization("Acme", owner)
+    mine = Membership.objects.create(organization=org, user=user, role=Role.MEMBER)
+    owners = Membership.objects.get(organization=org, user=owner)
+    client.force_login(user)
+    base = f"/api/orgs/{org.slug}"
+
+    response = client.patch(
+        f"{base}/members/{owners.pk}", {"role": "member"}, content_type="application/json"
+    )
+    assert response.status_code == 403
+    assert client.delete(f"{base}/members/{owners.pk}").status_code == 403
+    # Leaving is always allowed (unless you're the last owner).
+    assert client.delete(f"{base}/members/{mine.pk}").status_code == 204
+    assert client.get(base).status_code == 404

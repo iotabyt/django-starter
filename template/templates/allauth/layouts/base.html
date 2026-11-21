@@ -1,5 +1,17 @@
 {% extends "base.html" %}
+{# Sign in, sign up, password reset and the other pages you see while signed out. #}
 
 {% block title %}{% block head_title %}{% endblock %} · {{ PROJECT_NAME }}{% endblock %}
 
-{% block main_class %}allauth mx-auto w-full max-w-md flex-1 px-4 py-12{% endblock %}
+{% block main %}
+  <main class="flex flex-1 items-start justify-center px-4 py-12 sm:py-16">
+    <div class="w-full max-w-md">
+      <div class="mb-6 flex justify-center">
+        <span class="logo-mark logo-mark-lg">{{ PROJECT_NAME|slice:":1"|upper }}</span>
+      </div>
+      <div class="card allauth p-6 shadow-sm sm:p-8">
+        {% block content %}{% endblock %}
+      </div>
+    </div>
+  </main>
+{% endblock %}

@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block title %}{{ org.name }} · {{ PROJECT_NAME }}{% endblock %}
+
+{% block content %}
+  <a href="{% url 'orgs:list' %}" class="text-sm text-gray-500 hover:text-gray-900">&larr; Organizations</a>
+  <div class="mt-3 flex flex-wrap items-center justify-between gap-4">
+    <div class="flex items-center gap-4">
+      <span class="logo-mark logo-mark-lg">{{ org.name|slice:":1"|upper }}</span>
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight">{{ org.name }}</h1>
+        <p class="text-sm text-gray-500">You're {{ me.get_role_display|lower }} · {{ members|length }} member{{ members|length|pluralize }}</p>
+      </div>
+    </div>
+    {% if me.role != "owner" %}
+      <form method="post" action="{% url 'orgs:member_remove' slug=org.slug member_id=me.pk %}" data-confirm="Leave {{ org.name }}?">
+        {% csrf_token %}
+        <button type="submit" class="btn-danger">Leave organization</button>
+      </form>
+    {% endif %}
+  </div>
+
+  <div class="mt-8 grid gap-6 lg:grid-cols-[1fr_20rem]">
+    <div class="space-y-6">
+      <section class="card overflow-hidden">
+        <div class="border-b border-gray-200 px-5 py-4">
+          <h2 class="font-semibold">Members</h2>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="data-table">
+            <thead class="bg-gray-50">
+              <tr><th>Member</th><th>Role</th><th>Joined</th><th class="sr-only">Actions</th></tr>
+            </thead>
+            <tbody>
+              {% for row in members %}{% with m=row.m %}
+                <tr>
+                  <td>
+                    <div class="flex items-center gap-3">
+                      <span class="avatar avatar-sm">{{ m.user|initials }}</span>
+                      <div class="min-w-0">
+                        <p class="truncate font-medium text-gray-900">{{ m.user.name|default:m.user.email }}{% if m.pk == me.pk %} <span class="text-gray-400">(you)</span>{% endif %}</p>
+                        {% if m.user.name %}<p class="truncate text-gray-500">{{ m.user.email }}</p>{% endif %}
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    {% if row.editable %}
+                      <form method="post" action="{% url 'orgs:member_role' slug=org.slug member_id=m.pk %}">
+                        {% csrf_token %}
+                        <select name="role" data-autosubmit class="input w-32 py-1.5" aria-label="Role for {{ m.user.email }}">
+                          {% for value, label in roles %}
+                            {% if value != "owner" or me.role == "owner" %}
+                              <option value="{{ value }}" {% if m.role == value %}selected{% endif %}>{{ label }}</option>
+                            {% endif %}
+                          {% endfor %}
+                        </select>
+                        <noscript><button type="submit" class="link ml-2">Save</button></noscript>
+                      </form>
+                    {% else %}
+                      <span class="badge {% if m.role == 'owner' %}badge-owner{% elif m.role == 'admin' %}badge-admin{% endif %}">{{ m.get_role_display }}</span>
+                    {% endif %}
+                  </td>
+                  <td class="whitespace-nowrap text-gray-500">{{ m.created_at|date:"j M Y" }}</td>
+                  <td class="text-right">
+                    {% if row.editable %}
+                      <form method="post" action="{% url 'orgs:member_remove' slug=org.slug member_id=m.pk %}" data-confirm="Remove {{ m.user.email }} from {{ org.name }}?">
+                        {% csrf_token %}
+                        <button type="submit" class="text-sm font-medium text-red-600 hover:text-red-500">Remove</button>
+                      </form>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endwith %}{% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card overflow-hidden">
+        <div class="border-b border-gray-200 px-5 py-4">
+          <h2 class="font-semibold">Pending invites</h2>
+        </div>
+        {% if invites %}
+          <div class="overflow-x-auto">
+            <table class="data-table">
+              <thead class="bg-gray-50">
+                <tr><th>Email</th><th>Role</th><th>Expires</th><th class="sr-only">Actions</th></tr>
+              </thead>
+              <tbody>
+                {% for i in invites %}
+                  <tr>
+                    <td class="font-medium text-gray-900">{{ i.email }}</td>
+                    <td><span class="badge {% if i.role == 'admin' %}badge-admin{% endif %}">{{ i.get_role_display }}</span></td>
+                    <td class="whitespace-nowrap text-gray-500">{% if i.is_expired %}<span class="badge badge-warning">Expired</span>{% else %}{{ i.expires_at|date:"j M Y" }}{% endif %}</td>
+                    <td class="text-right">
+                      {% if me.can_manage %}
+                        <form method="post" action="{% url 'orgs:revoke' slug=org.slug invite_id=i.pk %}">
+                          {% csrf_token %}
+                          <button type="submit" class="text-sm font-medium text-gray-600 hover:text-gray-900">Revoke</button>
+                        </form>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p class="px-5 py-6 text-sm text-gray-500">No pending invites.</p>
+        {% endif %}
+      </section>
+    </div>
+
+    {% if me.can_manage %}
+      <aside class="card h-fit p-5">
+        <h2 class="font-semibold">Invite someone</h2>
+        <p class="mt-1 text-sm text-gray-600">They'll get an email with a link to join.</p>
+        <form method="post" action="{% url 'orgs:invite' slug=org.slug %}" class="mt-4 space-y-4">
+          {% csrf_token %}
+          <div class="field">
+            <label for="{{ invite_form.email.id_for_label }}">Email</label>
+            {{ invite_form.email }}
+          </div>
+          <div class="field">
+            <label for="{{ invite_form.role.id_for_label }}">Role</label>
+            {{ invite_form.role }}
+          </div>
+          <button type="submit" class="btn-primary w-full">Send invite</button>
+        </form>
+      </aside>
+    {% endif %}
+  </div>
+{% endblock %}

@@ -1,0 +1,72 @@
+import pytest
+
+from apps.orgs.models import Invite, Membership, Organization, Role
+from apps.orgs.services import create_organization
+from apps.users.models import User
+
+pytestmark = pytest.mark.django_db
+
+
+def test_list_and_create(client, user):
+    client.force_login(user)
+    response = client.get("/orgs/")
+    assert response.status_code == 200
+    assert b"No organizations yet" in response.content
+
+    response = client.post("/orgs/", {"name": "Acme Ltd"})
+    assert response.status_code == 302
+    assert response["Location"] == "/orgs/acme-ltd/"
+    assert Organization.objects.filter(slug="acme-ltd").exists()
+
+
+def test_detail_invite_role_and_remove(client, user):
+    org = create_organization("Acme", user)
+    other = User.objects.create_user(email="other@example.com", password="pw-123456")
+    theirs = Membership.objects.create(organization=org, user=other, role=Role.MEMBER)
+    client.force_login(user)
+
+    response = client.get(f"/orgs/{org.slug}/")
+    assert response.status_code == 200
+    assert b"other@example.com" in response.content
+    assert b"Invite someone" in response.content
+
+    client.post(f"/orgs/{org.slug}/invites/", {"email": "new@example.com", "role": "admin"})
+    invite = Invite.objects.get(organization=org, email="new@example.com")
+    assert invite.role == Role.ADMIN
+
+    client.post(f"/orgs/{org.slug}/invites/{invite.pk}/revoke/")
+    assert not Invite.objects.filter(pk=invite.pk).exists()
+
+    client.post(f"/orgs/{org.slug}/members/{theirs.pk}/role/", {"role": "admin"})
+    theirs.refresh_from_db()
+    assert theirs.role == Role.ADMIN
+
+    response = client.post(f"/orgs/{org.slug}/members/{theirs.pk}/remove/", follow=True)
+    assert b"Removed other@example.com" in response.content
+    assert not Membership.objects.filter(pk=theirs.pk).exists()
+
+
+def test_member_sees_read_only_page_and_can_leave(client, user):
+    owner = User.objects.create_user(email="owner@example.com", password="pw-123456")
+    org = create_organization("Acme", owner)
+    mine = Membership.objects.create(organization=org, user=user, role=Role.MEMBER)
+    owners = Membership.objects.get(organization=org, user=owner)
+    client.force_login(user)
+
+    response = client.get(f"/orgs/{org.slug}/")
+    assert b"Invite someone" not in response.content
+    assert b"data-autosubmit" not in response.content
+
+    response = client.post(f"/orgs/{org.slug}/members/{owners.pk}/remove/", follow=True)
+    assert b"Only owners and admins can remove members." in response.content
+
+    response = client.post(f"/orgs/{org.slug}/members/{mine.pk}/remove/")
+    assert response["Location"] == "/orgs/"
+    assert client.get(f"/orgs/{org.slug}/").status_code == 404
+
+
+def test_outsider_gets_404(client, user):
+    owner = User.objects.create_user(email="owner@example.com", password="pw-123456")
+    org = create_organization("Acme", owner)
+    client.force_login(user)
+    assert client.get(f"/orgs/{org.slug}/").status_code == 404

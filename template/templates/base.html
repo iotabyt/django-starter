@@ -1,4 +1,4 @@
-{% load static tailwind_cli django_htmx %}<!doctype html>
+{% load static tailwind_cli django_htmx ui %}<!doctype html>
 <html lang="en-GB" class="h-full">
   <head>
     <meta charset="utf-8">
@@ -6,44 +6,99 @@
     <title>{% block title %}{{ PROJECT_NAME }}{% endblock %}</title>
     {% tailwind_css %}
     {% htmx_script %}
+    <script src="{% static 'js/ui.js' %}" defer></script>
     {% block extra_head %}{% endblock %}
   </head>
   <body class="flex min-h-full flex-col bg-gray-50 text-gray-900 antialiased" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
-    <header class="border-b border-gray-200 bg-white">
-      <nav class="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3">
-        <a href="{% url 'core:home' %}" class="font-semibold tracking-tight">{{ PROJECT_NAME }}</a>
-        <div class="flex items-center gap-4 text-sm">
+    {# These resolve only when the module is installed; `as` makes a missing URL a no-op. #}
+    {% url 'core:spa' path='' as spa_url %}
+    {% url 'orgs:list' as orgs_url %}
+
+    <header class="sticky top-0 z-30 border-b border-gray-200 bg-white/90 backdrop-blur">
+      <nav class="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6" aria-label="Main">
+        <div class="flex items-center gap-8">
+          <a href="{% url 'core:home' %}" class="flex items-center gap-2.5 font-semibold tracking-tight">
+            <span class="logo-mark">{{ PROJECT_NAME|slice:":1"|upper }}</span>
+            <span>{{ PROJECT_NAME }}</span>
+          </a>
           {% if user.is_authenticated %}
-            {# Resolves only when the SPA is installed; `as` makes a missing URL a no-op. #}
-            {% url 'core:spa' path='' as spa_url %}
-            {% if spa_url %}<a href="{{ spa_url }}" class="btn-primary">Open app</a>{% endif %}
-            <span class="hidden text-gray-600 sm:inline">{{ user.email }}</span>
-            <a href="{% url 'mfa_index' %}" class="link">Security</a>
-            <form method="post" action="{% url 'account_logout' %}">
-              {% csrf_token %}
-              <button type="submit" class="link">Sign out</button>
-            </form>
+            <div class="hidden items-center gap-1 sm:flex">
+              {% url 'core:home' as home_url %}
+              <a href="{{ home_url }}" class="nav-link {% if request.path == home_url %}nav-link-active{% endif %}">Home</a>
+              {% if spa_url %}
+                <a href="{{ spa_url }}" class="nav-link">Dashboard</a>
+              {% elif orgs_url %}
+                <a href="{{ orgs_url }}" class="nav-link {% if request.path|startswith:orgs_url %}nav-link-active{% endif %}">Organizations</a>
+              {% endif %}
+              {% url 'users:settings' as settings_url %}
+              <a href="{{ settings_url }}" class="nav-link {% if request.path|startswith:settings_url or request.path|startswith:'/accounts/' %}nav-link-active{% endif %}">Settings</a>
+            </div>
+          {% endif %}
+        </div>
+
+        <div class="flex items-center gap-2">
+          {% if user.is_authenticated %}
+            <details class="dropdown">
+              <summary aria-label="Account menu">
+                <span class="avatar">{{ user|initials }}</span>
+                {% icon "chevron-down" "size-4 text-gray-500" %}
+              </summary>
+              <div class="dropdown-menu">
+                <div class="flex items-center gap-3 border-b border-gray-100 px-4 py-3">
+                  <span class="avatar">{{ user|initials }}</span>
+                  <div class="min-w-0">
+                    <p class="truncate text-sm font-semibold text-gray-900">{{ user.name|default:"Your account" }}</p>
+                    <p class="truncate text-sm text-gray-500">{{ user.email }}</p>
+                  </div>
+                </div>
+                <div class="py-1">
+                  {% if spa_url %}
+                    <a href="{{ spa_url }}" class="dropdown-item">{% icon "squares" %}Dashboard</a>
+                  {% elif orgs_url %}
+                    <a href="{{ orgs_url }}" class="dropdown-item">{% icon "building" %}Organizations</a>
+                  {% endif %}
+                  <a href="{% url 'users:settings' %}" class="dropdown-item">{% icon "user" %}Profile</a>
+                  <a href="{% url 'account_email' %}" class="dropdown-item">{% icon "envelope" %}Email addresses</a>
+                  <a href="{% url 'account_change_password' %}" class="dropdown-item">{% icon "key" %}Password</a>
+                  <a href="{% url 'mfa_index' %}" class="dropdown-item">{% icon "shield-check" %}Two-factor authentication</a>
+                  {% if user.is_staff %}
+                    <a href="{% url 'admin:index' %}" class="dropdown-item">{% icon "lock" %}Admin</a>
+                  {% endif %}
+                </div>
+                <form method="post" action="{% url 'account_logout' %}" class="border-t border-gray-100 py-1">
+                  {% csrf_token %}
+                  <button type="submit" class="dropdown-item">{% icon "sign-out" %}Sign out</button>
+                </form>
+              </div>
+            </details>
           {% else %}
-            <a href="{% url 'account_login' %}" class="link">Sign in</a>
-            <a href="{% url 'account_signup' %}" class="btn-primary">Sign up</a>
+            <a href="{% url 'account_login' %}" class="nav-link">Sign in</a>
+            <a href="{% url 'account_signup' %}" class="btn-primary">Get started</a>
           {% endif %}
         </div>
       </nav>
     </header>
 
     {% if messages %}
-      <ul class="mx-auto mt-4 w-full max-w-5xl space-y-2 px-4">
+      <div class="mx-auto mt-6 w-full max-w-6xl space-y-2 px-4 sm:px-6" role="status">
         {% for message in messages %}
-          <li class="rounded-md border px-4 py-3 text-sm {% if message.level_tag == 'error' %}border-red-200 bg-red-50 text-red-800{% elif message.level_tag == 'success' %}border-green-200 bg-green-50 text-green-800{% else %}border-gray-200 bg-white text-gray-800{% endif %}">
-            {{ message }}
-          </li>
+          <div class="alert {% if message.level_tag == 'error' %}alert-error{% elif message.level_tag == 'success' %}alert-success{% elif message.level_tag == 'warning' %}alert-warning{% else %}alert-info{% endif %}">
+            {% icon "check-circle" "size-5 shrink-0" %}
+            <span>{{ message }}</span>
+          </div>
         {% endfor %}
-      </ul>
+      </div>
     {% endif %}
 
-    <main class="{% block main_class %}mx-auto w-full max-w-5xl flex-1 px-4 py-10{% endblock %}">
-      {% block content %}{% endblock %}
-    </main>
+    {% block main %}
+      <main class="{% block main_class %}mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:px-6{% endblock %}">
+        {% block content %}{% endblock %}
+      </main>
+    {% endblock %}
+
+    <footer class="border-t border-gray-200 bg-white">
+      <div class="mx-auto max-w-6xl px-4 py-6 text-sm text-gray-500 sm:px-6">&copy; {% now "Y" %} {{ PROJECT_NAME }}</div>
+    </footer>
 
     {% block extra_body %}{% endblock %}
   </body>

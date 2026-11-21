@@ -9,6 +9,7 @@ from apps.api.api import api
 urlpatterns = [
     path(settings.ADMIN_URL, admin.site.urls),
     path("accounts/", include("allauth.urls")),
+    path("settings/", include("apps.users.urls")),
 {% if use_orgs %}
     path("orgs/", include("apps.orgs.urls")),
 {% endif %}

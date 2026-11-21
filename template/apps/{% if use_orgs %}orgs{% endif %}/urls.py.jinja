@@ -1,0 +1,17 @@
+from django.urls import path
+
+from . import views
+
+app_name = "orgs"
+
+urlpatterns = [
+{% if not use_spa %}
+    path("", views.org_list, name="list"),
+    path("<slug:slug>/", views.org_detail, name="detail"),
+    path("<slug:slug>/invites/", views.invite, name="invite"),
+    path("<slug:slug>/invites/<int:invite_id>/revoke/", views.revoke, name="revoke"),
+    path("<slug:slug>/members/<int:member_id>/role/", views.member_role, name="member_role"),
+    path("<slug:slug>/members/<int:member_id>/remove/", views.member_remove, name="member_remove"),
+{% endif %}
+    path("invites/<str:token>/", views.accept_invite, name="accept_invite"),
+]

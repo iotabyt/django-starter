@@ -1,0 +1,16 @@
+{% for field in attrs.form.hidden_fields %}{{ field }}{% endfor %}
+{% if attrs.form.non_field_errors %}
+  <div class="form-error">{{ attrs.form.non_field_errors }}</div>
+{% endif %}
+{% for field in attrs.form.visible_fields %}
+  <div class="field">
+    {% if field.widget_type == "checkbox" %}
+      <label class="checkbox">{{ field }} <span>{{ field.label }}</span></label>
+    {% else %}
+      <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+      {{ field }}
+    {% endif %}
+    {% if field.help_text %}<div class="helptext">{{ field.help_text|safe }}</div>{% endif %}
+    {{ field.errors }}
+  </div>
+{% endfor %}

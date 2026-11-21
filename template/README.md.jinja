@@ -10,11 +10,12 @@ Generated from [iotabyt/django-starter](https://github.com/iotabyt/django-starte
 
 - **Django 6.0** with server-rendered templates, [htmx](https://htmx.org) and template partials
 - **Tailwind CSS v4** via django-tailwind-cli (no Node needed for the server-rendered pages)
-- **django-allauth**: email sign-in with mandatory verification, Google, TOTP and recovery codes
+- **django-allauth**: email sign-in with mandatory verification, Google, TOTP and recovery codes,
+  restyled to match the app, with a settings area (profile, email, password, two-factor)
 - **Procrastinate**: background jobs and cron tasks, queued in Postgres
 - **Postgres 18**, **Unfold** admin, **WhiteNoise** for static files
 {% if use_orgs %}
-- **Organizations**: memberships with roles, and email invites
+- **Organizations**: owners, admins and members, email invites, and pages to manage them
 {% endif %}
 {% if use_spa %}
 - **Django Ninja** API at `/api/` and a **React 19** SPA at `/app/` (Vite, TanStack Router and Query)
@@ -40,6 +41,9 @@ native install needs no Docker; otherwise it starts the Docker Compose one on th
 If port 5432 is taken, change the port in `DATABASE_URL` and run `bin/setup` again. The
 Tailwind CLI is downloaded once per machine to `~/.cache/django-tailwind-cli`
 (`TAILWIND_CLI_PATH` in `.env` changes that).
+
+The Django Debug Toolbar starts collapsed on the right; set `DEBUG_TOOLBAR=False` in `.env`
+to turn it off.
 
 `bin/dev` runs Django, the Tailwind watcher, a Procrastinate worker{{ ' and the Vite dev server' if use_spa else '' }} with honcho
 (see `Procfile.dev`). Emails print to the terminal in development, including the verification
@@ -73,7 +77,7 @@ them (`just --list`). Everything works without it:
 ```
 config/            settings (base, dev, test, prod), urls, wsgi/asgi, deploy.yml (Kamal)
 apps/core/         TimeStampedModel, health check, home page, example tasks
-apps/users/        custom email-only User and its admin
+apps/users/        custom email-only User, its admin, and the /settings/ profile page
 {% if use_orgs %}
 apps/orgs/         organizations, memberships, invites (logic in services.py)
 {% endif %}
@@ -81,8 +85,9 @@ apps/orgs/         organizations, memberships, invites (logic in services.py)
 apps/api/          Django Ninja API
 frontend/          React SPA (Vite)
 {% endif %}
-templates/         Django templates (allauth/ overrides the auth pages' layout)
-styles/source.css  Tailwind entry point; builds to assets/css/tailwind.css
+templates/         Django templates; allauth/ restyles the auth pages, settings/ is the settings layout
+styles/source.css  Tailwind entry point and UI building blocks (buttons, cards, inputs, badges)
+assets/js/ui.js    tiny helpers: closing dropdowns, auto-submitting selects, confirm prompts
 bin/               setup, dev (local), docker-entrypoint, secret (deploy)
 ```
 

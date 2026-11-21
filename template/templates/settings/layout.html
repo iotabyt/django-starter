@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% load ui %}
+
+{% block main %}
+  <main class="mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:px-6">
+    <div class="mb-8">
+      <h1 class="text-2xl font-bold tracking-tight">Settings</h1>
+      <p class="mt-1 text-sm text-gray-600">Manage your profile, how you sign in, and account security.</p>
+    </div>
+    <div class="grid gap-8 lg:grid-cols-[15rem_1fr]">
+      <nav class="flex gap-1 overflow-x-auto lg:flex-col" aria-label="Settings">
+        {% url 'users:settings' as profile_url %}
+        {% url 'account_email' as email_url %}
+        {% url 'account_change_password' as password_url %}
+        {% url 'account_set_password' as set_password_url %}
+        {% url 'mfa_index' as mfa_url %}
+        {% url 'socialaccount_connections' as connections_url %}
+        <a href="{{ profile_url }}" class="settings-nav-item {% if request.path == profile_url %}settings-nav-item-active{% endif %}">{% icon "user" %}Profile</a>
+        <a href="{{ email_url }}" class="settings-nav-item {% if request.path == email_url %}settings-nav-item-active{% endif %}">{% icon "envelope" %}Email addresses</a>
+        <a href="{{ password_url }}" class="settings-nav-item {% if request.path == password_url or request.path == set_password_url %}settings-nav-item-active{% endif %}">{% icon "key" %}Password</a>
+        <a href="{{ mfa_url }}" class="settings-nav-item {% if request.path|startswith:mfa_url %}settings-nav-item-active{% endif %}">{% icon "shield-check" %}Two-factor</a>
+        <a href="{{ connections_url }}" class="settings-nav-item {% if request.path == connections_url %}settings-nav-item-active{% endif %}">{% icon "link" %}Connected accounts</a>
+      </nav>
+      <div class="card allauth min-w-0 p-6 sm:p-8">
+        {% block content %}{% endblock %}
+      </div>
+    </div>
+  </main>
+{% endblock %}

@@ -1,0 +1,24 @@
+import { queryOptions } from "@tanstack/react-query";
+import { get } from "./api";
+import type { Invite, Member, Org } from "./types";
+
+// Shared by several routes; route files should only export `Route` so code-splitting works.
+export const orgsQuery = queryOptions({
+  queryKey: ["orgs"],
+  queryFn: () => get<Org[]>("/orgs/"),
+});
+
+export const orgQuery = (slug: string) =>
+  queryOptions({ queryKey: ["orgs", slug], queryFn: () => get<Org>(`/orgs/${slug}`) });
+
+export const membersQuery = (slug: string) =>
+  queryOptions({
+    queryKey: ["orgs", slug, "members"],
+    queryFn: () => get<Member[]>(`/orgs/${slug}/members`),
+  });
+
+export const invitesQuery = (slug: string) =>
+  queryOptions({
+    queryKey: ["orgs", slug, "invites"],
+    queryFn: () => get<Invite[]>(`/orgs/${slug}/invites`),
+  });

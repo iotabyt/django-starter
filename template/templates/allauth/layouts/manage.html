@@ -1,0 +1,4 @@
+{% extends "settings/layout.html" %}
+{# Email, password, two-factor and connected-account pages share the settings layout. #}
+
+{% block title %}{% block head_title %}{% endblock %} · {{ PROJECT_NAME }}{% endblock %}

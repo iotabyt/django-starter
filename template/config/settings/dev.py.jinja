@@ -2,10 +2,16 @@ from .base import *
 
 DEBUG = True
 
-INSTALLED_APPS += ["debug_toolbar", "django_browser_reload"]
-MIDDLEWARE.insert(1, "debug_toolbar.middleware.DebugToolbarMiddleware")
+INSTALLED_APPS += ["django_browser_reload"]
 MIDDLEWARE += ["django_browser_reload.middleware.BrowserReloadMiddleware"]
-INTERNAL_IPS = ["127.0.0.1"]
+
+# Django Debug Toolbar: set DEBUG_TOOLBAR=False in .env to turn it off.
+if config("DEBUG_TOOLBAR", default=True, cast=bool):
+    INSTALLED_APPS += ["debug_toolbar"]
+    MIDDLEWARE.insert(1, "debug_toolbar.middleware.DebugToolbarMiddleware")
+    INTERNAL_IPS = ["127.0.0.1"]
+    # Start as a small handle on the right instead of a panel over the page.
+    DEBUG_TOOLBAR_CONFIG = {"SHOW_COLLAPSED": True}
 
 STORAGES["staticfiles"] = {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"}
 

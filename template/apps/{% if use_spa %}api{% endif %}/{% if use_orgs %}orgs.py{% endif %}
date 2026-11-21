@@ -5,8 +5,18 @@ from ninja import Field, Router, Schema, Status
 from ninja.errors import HttpError
 from pydantic import EmailStr
 
-from apps.orgs.models import Membership, Role
-from apps.orgs.services import InviteError, create_organization, invite_member
+from apps.orgs.models import Invite, Membership, Role
+from apps.orgs.services import (
+    InviteError,
+    MembershipError,
+    NotAllowed,
+    change_role,
+    create_organization,
+    get_membership,
+    invite_member,
+    remove_member,
+    revoke_invite,
+)
 
 from .schemas import ErrorOut
 
@@ -18,10 +28,26 @@ class OrgOut(Schema):
     name: str
     slug: str
     role: str
+    member_count: int
+    pending_invite_count: int
 
 
 class OrgIn(Schema):
     name: str = Field(min_length=1, max_length=200)
+
+
+class MemberOut(Schema):
+    id: int
+    user_id: int
+    email: str
+    name: str
+    role: str
+    joined_at: datetime
+    is_me: bool
+
+
+class RoleIn(Schema):
+    role: str
 
 
 class InviteIn(Schema):
@@ -34,6 +60,52 @@ class InviteOut(Schema):
     email: str
     role: str
     expires_at: datetime
+    invited_by: str | None
+
+
+def _membership_or_404(request: HttpRequest, slug: str) -> Membership:
+    membership = get_membership(request.auth, slug)
+    if membership is None:
+        raise HttpError(404, "Organization not found.")
+    return membership
+
+
+def _org_out(membership: Membership) -> OrgOut:
+    org = membership.organization
+    return OrgOut(
+        id=org.pk,
+        name=org.name,
+        slug=org.slug,
+        role=membership.role,
+        member_count=org.memberships.count(),
+        pending_invite_count=org.invites.filter(accepted_at__isnull=True).count(),
+    )
+
+
+def _member_out(membership: Membership, me: Membership) -> MemberOut:
+    return MemberOut(
+        id=membership.pk,
+        user_id=membership.user.pk,
+        email=membership.user.email,
+        name=membership.user.name,
+        role=membership.role,
+        joined_at=membership.created_at,
+        is_me=membership.pk == me.pk,
+    )
+
+
+def _invite_out(invite: Invite) -> InviteOut:
+    return InviteOut(
+        id=invite.pk,
+        email=invite.email,
+        role=invite.role,
+        expires_at=invite.expires_at,
+        invited_by=invite.invited_by.email if invite.invited_by else None,
+    )
+
+
+def _error(exc: MembershipError):
+    return Status(403 if isinstance(exc, NotAllowed) else 400, ErrorOut(detail=str(exc)))
 
 
 @router.get("/", response=list[OrgOut])
@@ -43,29 +115,69 @@ def list_orgs(request: HttpRequest):
         .select_related("organization")
         .order_by("organization__name")
     )
-    return [
-        OrgOut(
-            id=m.organization.pk, name=m.organization.name, slug=m.organization.slug, role=m.role
-        )
-        for m in memberships
-    ]
+    return [_org_out(m) for m in memberships]
 
 
 @router.post("/", response={201: OrgOut})
 def create_org(request: HttpRequest, payload: OrgIn):
     org = create_organization(payload.name.strip(), request.auth)
-    return Status(201, OrgOut(id=org.pk, name=org.name, slug=org.slug, role=Role.OWNER))
+    return Status(201, _org_out(_membership_or_404(request, org.slug)))
+
+
+@router.get("/{slug}", response=OrgOut)
+def get_org(request: HttpRequest, slug: str):
+    return _org_out(_membership_or_404(request, slug))
+
+
+@router.get("/{slug}/members", response=list[MemberOut])
+def list_members(request: HttpRequest, slug: str):
+    me = _membership_or_404(request, slug)
+    members = me.organization.memberships.select_related("user").order_by("created_at").all()
+    return [_member_out(m, me) for m in members]
+
+
+@router.patch(
+    "/{slug}/members/{member_id}", response={200: MemberOut, 400: ErrorOut, 403: ErrorOut}
+)
+def update_member(request: HttpRequest, slug: str, member_id: int, payload: RoleIn):
+    me = _membership_or_404(request, slug)
+    target = me.organization.memberships.select_related("user").filter(pk=member_id).first()
+    if target is None:
+        raise HttpError(404, "Member not found.")
+    try:
+        target = change_role(target, payload.role, request.auth)
+    except MembershipError as exc:
+        return _error(exc)
+    return _member_out(target, me)
+
+
+@router.delete("/{slug}/members/{member_id}", response={204: None, 400: ErrorOut, 403: ErrorOut})
+def delete_member(request: HttpRequest, slug: str, member_id: int):
+    me = _membership_or_404(request, slug)
+    target = me.organization.memberships.filter(pk=member_id).first()
+    if target is None:
+        raise HttpError(404, "Member not found.")
+    try:
+        remove_member(target, request.auth)
+    except MembershipError as exc:
+        return _error(exc)
+    return Status(204, None)
+
+
+@router.get("/{slug}/invites", response=list[InviteOut])
+def list_invites(request: HttpRequest, slug: str):
+    me = _membership_or_404(request, slug)
+    invites = (
+        me.organization.invites.filter(accepted_at__isnull=True)
+        .select_related("invited_by")
+        .order_by("-created_at")
+    )
+    return [_invite_out(i) for i in invites]
 
 
 @router.post("/{slug}/invites", response={201: InviteOut, 400: ErrorOut, 403: ErrorOut})
 def create_invite(request: HttpRequest, slug: str, payload: InviteIn):
-    membership = (
-        Membership.objects.filter(organization__slug=slug, user=request.auth)
-        .select_related("organization")
-        .first()
-    )
-    if membership is None:
-        raise HttpError(404, "Organization not found.")
+    membership = _membership_or_404(request, slug)
     if not membership.can_manage:
         return Status(403, ErrorOut(detail="Only owners and admins can invite people."))
     if payload.role not in (Role.ADMIN, Role.MEMBER):
@@ -74,4 +186,17 @@ def create_invite(request: HttpRequest, slug: str, payload: InviteIn):
         invite = invite_member(membership.organization, payload.email, request.auth, payload.role)
     except InviteError as exc:
         return Status(400, ErrorOut(detail=str(exc)))
-    return Status(201, invite)
+    return Status(201, _invite_out(invite))
+
+
+@router.delete("/{slug}/invites/{invite_id}", response={204: None, 400: ErrorOut, 403: ErrorOut})
+def delete_invite(request: HttpRequest, slug: str, invite_id: int):
+    me = _membership_or_404(request, slug)
+    invite = me.organization.invites.filter(pk=invite_id).first()
+    if invite is None:
+        raise HttpError(404, "Invite not found.")
+    try:
+        revoke_invite(invite, request.auth)
+    except MembershipError as exc:
+        return _error(exc)
+    return Status(204, None)
