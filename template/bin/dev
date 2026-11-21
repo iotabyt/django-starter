@@ -11,7 +11,9 @@ if [ ! -f .env ] || [ ! -d .venv ]; then
   exit 1
 fi
 
+load_dotenv
 ensure_postgres
 # Without this, Python buffers the output of web/worker/css until much later under honcho.
 export PYTHONUNBUFFERED=1
-exec uv run honcho -f Procfile.dev start
+# .env is already loaded above (shell variables win), so honcho mustn't load it again.
+exec uv run honcho -e /dev/null -f Procfile.dev start

@@ -31,6 +31,27 @@ run() {
   fi
 }
 
+# Export the variables in .env that aren't already set, so the shell wins, as it does for
+# Django (python-decouple). honcho's own .env loading would let the file win instead.
+load_dotenv() {
+  [ -f .env ] || return 0
+  while IFS= read -r _line || [ -n "$_line" ]; do
+    _line=$(printf '%s' "$_line" | tr -d '\r')
+    case $_line in '#'*) continue ;; esac   # comments
+    case $_line in *=*) ;; *) continue ;; esac  # blank or not KEY=VALUE
+    _line=${_line#export }
+    _key=${_line%%=*}
+    _val=${_line#*=}
+    case $_key in '' | [0-9]* | *[!A-Za-z0-9_]*) continue ;; esac
+    if eval "[ -n \"\${$_key+set}\" ]"; then continue; fi
+    case $_val in
+      \"*\") _val=${_val#\"} _val=${_val%\"} ;;
+      \'*\') _val=${_val#\'} _val=${_val%\'} ;;
+    esac
+    export "$_key=$_val"
+  done <.env
+}
+
 # Python for small helper scripts: the project's venv if it exists, else a uv-managed one.
 _py() {
   if [ -x .venv/bin/python ]; then
