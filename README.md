@@ -5,6 +5,28 @@ Server-rendered first, few moving parts: Django 6, htmx and template partials, T
 allauth (email, Google, MFA), Procrastinate jobs in Postgres, the Unfold admin, and boring
 Kamal 2 deploys to your own server. Organizations and a React SPA are optional.
 
+## What you get
+
+A freshly generated project with the defaults (`use_spa` and `use_orgs` on), straight after
+`bin/setup` and `bin/dev`, with a little demo data. Screenshots live in [`screenshots/`](screenshots/).
+
+| | |
+|---|---|
+| **Landing page**<br>![Landing page](screenshots/home.png) | **Signed in: home and profile menu**<br>![Signed-in home with the profile menu open](screenshots/home-signed-in.png) |
+| **Sign in** (email, or Google when configured)<br>![Sign in](screenshots/sign-in.png) | **Sign up**<br>![Sign up](screenshots/sign-up.png) |
+| **Dashboard** (React SPA at `/app/`)<br>![Dashboard](screenshots/dashboard.png) | **Organization: members, roles and invites**<br>![Organization page](screenshots/organization.png) |
+| **Settings: profile**<br>![Profile settings](screenshots/settings-profile.png) | **Settings: email addresses**<br>![Email settings](screenshots/settings-email.png) |
+| **Settings: two-factor authentication**<br>![Two-factor settings](screenshots/settings-two-factor.png) | **Accepting an invite**<br>![Invite page](screenshots/invite.png) |
+| **Organization page without the SPA** (`use_spa=false`, server-rendered with htmx)<br>![Server-rendered organization page](screenshots/organization-server-rendered.png) | **Admin** (Unfold)<br>![Unfold admin](screenshots/admin.png) |
+
+On a phone:
+
+<p>
+  <img src="screenshots/mobile-home.png" alt="Landing page on a phone" width="260">
+  &nbsp;
+  <img src="screenshots/mobile-dashboard.png" alt="Dashboard on a phone" width="260">
+</p>
+
 ## Use it
 
 ```bash
